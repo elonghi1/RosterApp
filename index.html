@@ -1635,6 +1635,7 @@ async function _doSave(){
       const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(data)});
       if(res.ok){
         setSaveStatus('idle','Saved to cloud',fmtSaveTime(data.ts));
+        setLastCloudSnapshot(getCloudSummary());
         return;
       }
       if(res.status===401){
@@ -1784,6 +1785,8 @@ function getCloudSummary(){
   });
   return {rosterCount,staffCount,shiftCount,ts:Date.now()};
 }
+const CLOUD_SNAPSHOT_MAX_AGE_MS=24*60*60*1000; // 24h – older = treat as first sync
+
 function getLastCloudSnapshot(){
   try{
     const raw=localStorage.getItem(CLOUD_SNAPSHOT_KEY);
@@ -1796,12 +1799,13 @@ function setLastCloudSnapshot(summary){
 }
 function showCloudSyncNotification(){
   const summary=getCloudSummary();
-  const prev=getLastCloudSnapshot();
+  let prev=getLastCloudSnapshot();
+  if(prev&&prev.ts&&(Date.now()-prev.ts>CLOUD_SNAPSHOT_MAX_AGE_MS)) prev=null;
   let msg='';
-  if(prev){
-    const dr=summary.rosterCount-prev.rosterCount;
-    const ds=summary.staffCount-prev.staffCount;
-    const dsh=summary.shiftCount-prev.shiftCount;
+  if(prev&&typeof prev.rosterCount==='number'&&typeof prev.staffCount==='number'){
+    const dr=summary.rosterCount-(prev.rosterCount||0);
+    const ds=summary.staffCount-(prev.staffCount||0);
+    const dsh=(summary.shiftCount||0)-(prev.shiftCount||0);
     const parts=[];
     if(dr>0)parts.push(dr+' new roster'+(dr>1?'s':''));
     if(dr<0)parts.push((-dr)+' roster'+(-dr>1?'s':'')+' removed');
@@ -1814,8 +1818,12 @@ function showCloudSyncNotification(){
     const r=summary.rosterCount,s=summary.staffCount;
     msg='Loaded from cloud: '+r+' roster'+(r!==1?'s':'')+', '+s+' staff';
   }
-  toast(msg);
+  toast(msg,4000);
   setLastCloudSnapshot(summary);
+  const label=document.getElementById('saveStatusLabel');
+  const sub=document.getElementById('saveStatusMeta');
+  if(label) label.textContent=saveStatus.message||'Loaded from cloud';
+  if(sub) sub.textContent=msg;
 }
 async function loadStateAsync(){
   try{
@@ -4213,7 +4221,7 @@ function printRoster(){
 
 // ═══ Helpers ═══
 function el(id){return document.getElementById(id)}
-function toast(m){const e=el('toast');e.textContent=m;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),2500)}
+function toast(m,duration){const e=el('toast');e.textContent=m;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),duration!=null?duration:2500)}
 
 // ═══ Event Delegation for shift cells ═══
 (function(){
