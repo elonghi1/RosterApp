@@ -1,0 +1,13 @@
+{
+  "name": "rosterapp-api",
+  "version": "1.0.0",
+  "description": "API for Roster Pro shared state",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0"
+  }
+}

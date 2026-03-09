@@ -1,0 +1,14 @@
+# Use official Node image (no Railway/ghcr.io secrets needed)
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY package.json ./
+RUN npm install --production
+
+COPY server.js ./
+
+EXPOSE 4000
+
+ENV PORT=4000
+CMD ["node", "server.js"]
