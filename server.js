@@ -5,7 +5,8 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const STATE_FILE = path.join(__dirname, 'state.json');
+// Use STATE_FILE_PATH on Railway so you can mount a Volume (e.g. /data) and set STATE_FILE_PATH=/data/state.json — otherwise state is lost on every deploy
+const STATE_FILE = process.env.STATE_FILE_PATH || path.join(__dirname, 'state.json');
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
