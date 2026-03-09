@@ -4281,6 +4281,10 @@ function getApiKey(){return document.getElementById('apiKeyInput').value.trim()}
 function saveApiKey(){try{localStorage.setItem('anthropic_api_key',getApiKey())}catch(e){}}
 function loadApiKey(){try{const k=localStorage.getItem('anthropic_api_key');if(k)document.getElementById('apiKeyInput').value=k}catch(e){}}
 function toggleKeyVis(){const inp=document.getElementById('apiKeyInput');inp.type=inp.type==='password'?'text':'password'}
+// Model selection: use Sonnet for speed/efficiency. Chat with thinking uses 3.7; auto-generate uses 3.5.
+const CLAUDE_AI_MODEL_CHAT='claude-3-7-sonnet-20250219';
+const CLAUDE_AI_MODEL_FAST='claude-3-5-sonnet-20241022';
+function getClaudeModel(useThinking){return useThinking?CLAUDE_AI_MODEL_CHAT:CLAUDE_AI_MODEL_FAST;}
 function toggleAIChat(){
   const panel=el('aiPanel'),fab=el('aiFab');
   panel.classList.toggle('hidden');
@@ -4850,7 +4854,7 @@ When reading a photo of a printed roster:
       method:'POST',
       headers:headers,
       body:JSON.stringify({
-        model:'claude-opus-4-20250514',
+        model:getClaudeModel(true),
         max_tokens:16000,
         thinking:{type:'enabled',budget_tokens:10000},
         system:finalSystem,
@@ -6625,7 +6629,7 @@ STRICT RULES:
           method:'POST',
           headers,
           body:JSON.stringify({
-            model:'claude-opus-4-20250514',
+            model:getClaudeModel(false),
             max_tokens:12000,
             system:systemPrompt,
             messages:[{role:'user',content:'Auto-generate the current week now.'}]
@@ -7852,7 +7856,7 @@ STRICT RULES:
             method:'POST',
             headers,
             body:JSON.stringify({
-              model:'claude-opus-4-20250514',
+              model:getClaudeModel(false),
               max_tokens:12000,
               system:systemPrompt,
               messages:[{role:'user',content:'Auto-generate the current week now.'}]
