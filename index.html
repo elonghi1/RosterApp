@@ -2928,8 +2928,6 @@ function renderAll(){
     const moreChip=hiddenBadges?`<span class="roster-id-more">+${hiddenBadges}</span>`:'';
     tbody+=`<div class="roster-id-card"><div class="roster-id-top">${nameHtml}${hoursChip}</div><div class="roster-id-rate" onclick="startEditRate(${s.id})">${payInfo}</div><div class="roster-id-badges">${visibleBadges}${moreChip}</div></div>`;
     tbody+='</div><div class="nm-acts">';
-    tbody+=`<button class="act" onclick="mvStaff(${si},-1)"><i data-lucide="chevron-up"></i></button>`;
-    tbody+=`<button class="act" onclick="mvStaff(${si},1)"><i data-lucide="chevron-down"></i></button>`;
     tbody+=`<button class="act" onclick="rmStaff(${s.id})"><i data-lucide="x"></i></button>`;
     tbody+='</div></div></td>';
 
