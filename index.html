@@ -850,6 +850,67 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .hdr,.hdr::before,.hdr::after,.sync-led,.card,.r-wrap,.stat,.rtabs-wrap,.cal-nav,.tabs,.add-form,.shifts-panel,.paint-bar{animation:none!important;transition-duration:.05s!important}
 }
 
+/* ═══ Mobile interface (from scratch) — show only below 768px ═══ */
+.desktop-wrap{display:block}
+.mobile-shell{display:none;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;background:var(--s50)}
+@media(max-width:768px){
+  .desktop-wrap{display:none!important}
+  .mobile-shell{display:flex}
+}
+.mob-header{flex-shrink:0;background:linear-gradient(135deg,#9333ea 0%,#db2777 50%);padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0));display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px}
+.mob-header-left{display:flex;align-items:center;gap:10px;min-width:0}
+.mob-header-title{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mob-header-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mob-sync-dot{width:10px;height:10px;border-radius:50%;background:#86efac;box-shadow:0 0 0 2px rgba(255,255,255,.3)}
+.mob-sync-dot.saving{background:#fbbf24;animation:pulseLed 1.2s ease-in-out infinite}
+.mob-sync-dot.error{background:#f87171}
+.mob-gear{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mob-gear svg{width:22px;height:22px}
+.mob-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0))}
+.mob-tabs{flex-shrink:0;display:flex;background:var(--white);border-top:1px solid var(--s200);padding-bottom:env(safe-area-inset-bottom,0);box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+.mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;min-height:56px;border:none;background:none;color:var(--s400);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:color .15s,background .15s}
+.mob-tab:hover{background:var(--s50)}
+.mob-tab.active{color:var(--pink-600);background:var(--pink-50)}
+.mob-tab svg{width:22px;height:22px}
+.mob-roster-view,.mob-dash-view,.mob-pay-view{display:none}
+.mob-roster-view.active,.mob-dash-view.active,.mob-pay-view.active{display:block}
+.mob-roster-tabs{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 0}
+.mob-roster-tabs::-webkit-scrollbar{display:none}
+.mob-roster-tab{flex:0 0 auto;padding:10px 16px;border-radius:12px;background:var(--white);border:2px solid var(--s200);font-size:13px;font-weight:600;color:var(--s600);white-space:nowrap;cursor:pointer;transition:all .15s}
+.mob-roster-tab.active{background:var(--pink-50);border-color:var(--pink-400);color:var(--pink-600)}
+.mob-week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 0}
+.mob-week-label{font-size:14px;font-weight:700;color:var(--s800)}
+.mob-week-prev,.mob-week-next{width:44px;height:44px;border-radius:12px;border:1px solid var(--s200);background:var(--white);color:var(--s600);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mob-week-prev svg,.mob-week-next svg{width:20px;height:20px}
+.mob-day-strip{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 0}
+.mob-day-strip::-webkit-scrollbar{display:none}
+.mob-day-pill{flex:0 0 auto;min-width:56px;padding:12px 8px;border-radius:12px;background:var(--white);border:2px solid var(--s200);text-align:center;cursor:pointer;transition:all .15s}
+.mob-day-pill .dow{font-size:10px;font-weight:700;color:var(--s400);text-transform:uppercase;display:block}
+.mob-day-pill .day{font-size:15px;font-weight:700;color:var(--s800);margin-top:2px}
+.mob-day-pill.today{border-color:var(--pink-300);background:var(--pink-50);color:var(--pink-600)}
+.mob-day-pill.today .dow{color:var(--pink-500)}
+.mob-day-pill.today .day{color:var(--pink-600)}
+.mob-day-pill.sel{background:linear-gradient(135deg,var(--pink-500),var(--purple-500));border-color:var(--purple-500);color:#fff}
+.mob-day-pill.sel .dow,.mob-day-pill.sel .day{color:#fff}
+.mob-day-pill.hol{border-color:var(--amber-400);background:var(--amber-50)}
+.mob-staff-list{display:flex;flex-direction:column;gap:8px}
+.mob-staff-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--white);border-radius:14px;border:1px solid var(--s100);box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:background .15s;min-height:56px}
+.mob-staff-row:active{background:var(--pink-50)}
+.mob-staff-name{font-size:15px;font-weight:700;color:var(--s800);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mob-staff-shift{font-size:13px;font-weight:600;color:var(--s600);flex-shrink:0}
+.mob-staff-shift.off{color:var(--s400)}
+.mob-staff-shift.al{color:#1d4ed8}
+.mob-staff-shift.sick{color:#be185d}
+.mob-empty{text-align:center;padding:32px 16px;color:var(--s500);font-size:14px;font-weight:500}
+.mob-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mob-stat-card{background:var(--white);border-radius:14px;padding:18px;border:1px solid var(--s100);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.mob-stat-card .v{font-size:24px;font-weight:800;color:var(--s800);letter-spacing:-.5px}
+.mob-stat-card .l{font-size:11px;font-weight:700;color:var(--s400);text-transform:uppercase;margin-top:4px}
+.mob-pay-list{display:flex;flex-direction:column;gap:8px}
+.mob-pay-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--white);border-radius:14px;border:1px solid var(--s100);min-height:52px}
+.mob-pay-row .name{font-size:14px;font-weight:600;color:var(--s800)}
+.mob-pay-row .amt{font-size:14px;font-weight:700;color:var(--s700)}
+
 @media print{
   .print-roster-card-style .roster-id-name,
   .roster-id-name{
@@ -892,6 +953,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 </head>
 <body>
 
+<div class="desktop-wrap">
 <div class="hdr">
   <div class="hdr-top">
     <div>
@@ -942,7 +1004,6 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
         <input type="file" id="configImportInput" accept="application/json,.json" onchange="importConfigFile(event)" hidden>
         <div class="gear-wrap">
           <button class="gear-btn" id="gearBtn" type="button" onclick="toggleGearMenu(event)"><i data-lucide="settings"></i></button>
-          <div class="gear-dd hidden" id="gearMenu"></div>
         </div>
       </div>
     </div>
@@ -1298,6 +1359,27 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 </div>
 
 </div>
+</div><!-- end desktop-wrap -->
+
+<div id="mobileShell" class="mobile-shell">
+  <header class="mob-header">
+    <div class="mob-header-left">
+      <span class="mob-header-title">Roster Pro</span>
+    </div>
+    <div class="mob-header-right">
+      <span class="mob-sync-dot" id="mobSyncDot" title="Sync status"></span>
+      <button type="button" class="mob-gear" id="mobGearBtn" onclick="toggleGearMenu(event)" aria-label="Settings"><i data-lucide="settings"></i></button>
+    </div>
+  </header>
+  <main class="mob-content" id="mobContent"></main>
+  <nav class="mob-tabs">
+    <button type="button" class="mob-tab" data-mob="roster" onclick="setMobTab('roster')"><i data-lucide="layout-grid"></i> Roster</button>
+    <button type="button" class="mob-tab" data-mob="dash" onclick="setMobTab('dash')"><i data-lucide="bar-chart-3"></i> Dashboard</button>
+    <button type="button" class="mob-tab" data-mob="pay" onclick="setMobTab('pay')"><i data-lucide="euro"></i> Pay</button>
+  </nav>
+</div>
+
+<div class="gear-dd hidden" id="gearMenu"></div>
 <div id="popOver" class="pop-over hidden" onclick="closePop()"></div>
 <div id="toast" class="toast hidden"></div>
 
@@ -1480,6 +1562,7 @@ function setSaveStatus(state,message,meta){
   if(chip)chip.setAttribute('data-status',state);
   if(label)label.textContent=message;
   if(sub)sub.textContent=meta;
+  if(typeof updateMobSyncDot==='function')updateMobSyncDot();
 }
 
 function markDirty(reason='Changes pending'){
@@ -2359,11 +2442,13 @@ function applyQS(sid,di,qi){
   pushUndo("Set shift");
   const s=staff.find(x=>x.id===sid);if(!s)return;
   s.shifts[di]={start:shifts[qi].s,end:shifts[qi].e,type:shifts[qi].type||''};closePop();renderAll();
+  if(typeof isMobile==='function'&&isMobile()&&typeof renderMobileRoster==='function')renderMobileRoster();
 }
 function applyCustom(sid,di){
   pushUndo("Set custom shift");
   const s=staff.find(x=>x.id===sid);if(!s)return;
   s.shifts[di]={start:el('ct-s').value,end:el('ct-e').value,type:''};closePop();renderAll();
+  if(typeof isMobile==='function'&&isMobile()&&typeof renderMobileRoster==='function')renderMobileRoster();
 }
 function applyAndSave(sid,di){
   pushUndo("Add preset & set shift");
@@ -2374,6 +2459,7 @@ function applyAndSave(sid,di){
   }
   const s=staff.find(x=>x.id===sid);if(!s)return;
   s.shifts[di]={start:sv,end:ev,type:''};closePop();renderAll();toast('Shift saved as preset!');
+  if(typeof isMobile==='function'&&isMobile()&&typeof renderMobileRoster==='function')renderMobileRoster();
 }
 
 // ═══ Inline Edit ═══
@@ -5781,7 +5867,7 @@ function toggleGearMenu(e){
   e&&e.stopPropagation();
   gearOpen=!gearOpen;
   const menu=el('gearMenu');
-  const btn=el('gearBtn');
+  const btn=(typeof isMobile==='function'&&isMobile()&&document.getElementById('mobGearBtn'))?document.getElementById('mobGearBtn'):el('gearBtn');
   if(gearOpen){
     btn.classList.add('open');
     renderGearMenu();
@@ -5805,12 +5891,16 @@ function toggleGearMenu(e){
 }
 function closeGear(){
   gearOpen=false;
-  el('gearMenu').classList.add('hidden');
-  el('gearBtn').classList.remove('open');
+  const menu=el('gearMenu');
+  if(menu)menu.classList.add('hidden');
+  const btn=el('gearBtn');
+  if(btn)btn.classList.remove('open');
+  const mobBtn=document.getElementById('mobGearBtn');
+  if(mobBtn)mobBtn.classList.remove('open');
   document.removeEventListener('click',closeGearOutside);
 }
 function closeGearOutside(e){
-  if(!e.target.closest('.gear-wrap'))closeGear();
+  if(!e.target.closest('.gear-wrap')&&!e.target.closest('.mob-gear')&&!e.target.closest('#gearMenu'))closeGear();
 }
 function gearAction(fn){
   closeGear();
@@ -6863,6 +6953,146 @@ function closeAuth(){
   el('authOverlay').innerHTML='';
 }
 
+// ═══ Mobile interface (from scratch) ═══
+function isMobile(){return typeof window!=='undefined'&&window.innerWidth<=768}
+let mobileTab='roster';
+let mobileDayIndex=0;
+
+function setMobTab(tab){
+  mobileTab=tab;
+  document.querySelectorAll('.mob-tab').forEach(b=>b.classList.toggle('active',b.dataset.mob===tab));
+  document.querySelectorAll('.mob-roster-view,.mob-dash-view,.mob-pay-view').forEach(el=>el.classList.remove('active'));
+  const view=el('mobContent');
+  if(!view)return;
+  if(tab==='roster'){view.innerHTML='';view.className='mob-content mob-roster-view active';renderMobileRoster();}
+  else if(tab==='dash'){view.innerHTML='';view.className='mob-content mob-dash-view active';renderMobileDash();}
+  else if(tab==='pay'){view.innerHTML='';view.className='mob-content mob-pay-view active';renderMobilePay();}
+  if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
+}
+
+function renderMobileRoster(){
+  const view=el('mobContent');
+  if(!view||!view.classList.contains('mob-roster-view'))return;
+  const dates=getWD();
+  const today=new Date();
+  if(mobileDayIndex<0||mobileDayIndex>6)mobileDayIndex=dates.findIndex(d=>d.getDate()===today.getDate()&&d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear());
+  if(mobileDayIndex<0)mobileDayIndex=0;
+  const visibleTabs=getVisibleRosterTabs();
+  let html='';
+  html+='<div class="mob-roster-tabs" id="mobRosterTabs">';
+  visibleTabs.forEach(t=>{
+    html+=`<button type="button" class="mob-roster-tab ${t.id===activeRosterTab?'active':''}" data-tabid="${t.id}" onclick="switchRosterTab(${t.id});setMobTab('roster')">${esc(t.name)}</button>`;
+  });
+  html+='</div>';
+  html+='<div class="mob-week-nav">';
+  html+=`<button type="button" class="mob-week-prev" onclick="chgWk(-1);setMobTab('roster')"><i data-lucide="chevron-left"></i></button>`;
+  html+=`<span class="mob-week-label">${fd(dates[0])} – ${fd(dates[6])}</span>`;
+  html+=`<button type="button" class="mob-week-next" onclick="chgWk(1);setMobTab('roster')"><i data-lucide="chevron-right"></i></button>`;
+  html+='</div>';
+  html+='<div class="mob-day-strip" id="mobDayStrip">';
+  dates.forEach((d,i)=>{
+    const hol=getHol(d);
+    const today=new Date();
+    const isToday=d.getDate()===today.getDate()&&d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear();
+    const sel=i===mobileDayIndex;
+    let cls='mob-day-pill';
+    if(hol)cls+=' hol';
+    if(isToday)cls+=' today';
+    if(sel)cls+=' sel';
+    html+=`<button type="button" class="${cls}" data-di="${i}" onclick="setMobileDay(${i})"><span class="dow">${DS[i]}</span><span class="day">${d.getDate()}</span></button>`;
+  });
+  html+='</div>';
+  html+='<div class="mob-staff-list" id="mobStaffList">';
+  const vs=activeStaff();
+  const di=mobileDayIndex;
+  const shDay=getHol(dates[di]);
+  if(vs.length===0)html+='<div class="mob-empty">No staff in this roster. Add staff on desktop or tap + in the roster tab bar.</div>';
+  else vs.forEach(s=>{
+    const sh=s.shifts[di];
+    let shiftText='—'; let shiftCls='off';
+    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
+    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
+    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
+    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
+  });
+  html+='</div>';
+  view.innerHTML=html;
+  if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
+}
+
+function setMobileDay(di){
+  mobileDayIndex=di;
+  const list=el('mobStaffList');
+  if(!list)return;
+  const strip=document.getElementById('mobDayStrip');
+  if(strip)strip.querySelectorAll('.mob-day-pill').forEach((p,i)=>{p.classList.toggle('sel',i===di);});
+  const dates=getWD();
+  const vs=activeStaff();
+  let html='';
+  if(vs.length===0)html='<div class="mob-empty">No staff in this roster.</div>';
+  else vs.forEach(s=>{
+    const sh=s.shifts[di];
+    let shiftText='—'; let shiftCls='off';
+    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
+    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
+    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
+    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
+  });
+  list.innerHTML=html;
+}
+
+function renderMobileDash(){
+  const view=el('mobContent');
+  if(!view)return;
+  const vs=activeStaff();
+  const dates=getWD();
+  const totalHrs=vs.reduce((a,s)=>a+s.shifts.reduce((b,sh)=>b+ch(sh.start,sh.end),0),0);
+  const onShift=vs.reduce((a,s)=>a+s.shifts.filter(sh=>sh.start&&sh.end).length,0);
+  let html='<div class="mob-stats">';
+  html+=`<div class="mob-stat-card"><div class="v">${vs.length}</div><div class="l">Staff</div></div>`;
+  html+=`<div class="mob-stat-card"><div class="v">${totalHrs.toFixed(1)}</div><div class="l">Total hours</div></div>`;
+  html+=`<div class="mob-stat-card"><div class="v">${onShift}</div><div class="l">Shifts this week</div></div>`;
+  html+=`<div class="mob-stat-card"><div class="v">${R().name}</div><div class="l">Roster</div></div>`;
+  html+='</div>';
+  html+='<p class="mob-empty" style="margin-top:16px">Full dashboard on desktop.</p>';
+  view.innerHTML=html;
+}
+
+function renderMobilePay(){
+  const view=el('mobContent');
+  if(!view)return;
+  const vs=activeStaff();
+  let html='<div class="mob-pay-list">';
+  vs.forEach(s=>{
+    const wh=s.shifts.reduce((a,sh)=>a+ch(sh.start,sh.end),0);
+    const pay=s.payType==='salary'?(s.salary||0)/52*(wh/(s.maxHours||40)):(s.rate||0)*wh;
+    html+=`<div class="mob-pay-row"><span class="name">${esc(s.name)}</span><span class="amt">€${pay.toFixed(0)}</span></div>`;
+  });
+  if(vs.length===0)html+='<div class="mob-empty">No staff.</div>';
+  html+='</div>';
+  view.innerHTML=html;
+}
+
+function updateMobSyncDot(){
+  const dot=document.getElementById('mobSyncDot');
+  if(!dot)return;
+  dot.className='mob-sync-dot';
+  if(saveStatus.state==='saving')dot.classList.add('saving');
+  else if(saveStatus.state==='error')dot.classList.add('error');
+}
+
+function checkViewport(){
+  if(isMobile()){
+    document.querySelector('.desktop-wrap').style.display='none';
+    document.getElementById('mobileShell').style.display='flex';
+    setMobTab(mobileTab);
+    updateMobSyncDot();
+  }else{
+    document.querySelector('.desktop-wrap').style.display='block';
+    document.getElementById('mobileShell').style.display='none';
+  }
+}
+
 // ═══ Init ═══
 async function init(){
   try{ensureStoreSettingsDefaults();}catch(e){}
@@ -6881,6 +7111,8 @@ async function init(){
   // Start in Easy Mode (locked)
   applyEasyMode(true);
   lucide.createIcons();
+  checkViewport();
+  window.addEventListener('resize',checkViewport);
   try{
     const auth=getAuth();
     if(!auth||!auth.hash){
