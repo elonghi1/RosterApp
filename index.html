@@ -1447,10 +1447,61 @@ let activeEntityId=null; // when set, only rosters with this entityId are shown
 // ═══ Persistence ═══
 const SAVE_KEY='rosterPro_v1';
 const CLOUD_SNAPSHOT_KEY='rosterPro_cloudSnapshot';
+const API_TOKEN_KEY='rosterPro_apiToken';
 const REMOTE_STATE_URL='https://rosterapp-production-721b.up.railway.app/api/state';
+const REMOTE_LOGIN_URL=REMOTE_STATE_URL.replace(/\/api\/state$/, '/api/login');
 let _saveTimer=null;
 let saveStatus={state:'idle',message:'Saved locally',meta:'Ready for backup',ts:null};
 
+function getApiToken(){try{return localStorage.getItem(API_TOKEN_KEY)||'';}catch(e){return ''}}
+function setApiToken(t){try{if(t)localStorage.setItem(API_TOKEN_KEY,t);else localStorage.removeItem(API_TOKEN_KEY);}catch(e){}}
+function clearApiToken(){setApiToken('')}
+function apiHeaders(){
+  const h={'Content-Type':'application/json'};
+  const t=getApiToken();
+  if(t&&t!=='no-auth')h['Authorization']='Bearer '+t;
+  return h;
+}
+function showLoginOverlay(reason){
+  const msg=document.getElementById('loginOverlayMsg');
+  const err=document.getElementById('apiLoginErr');
+  const pw=document.getElementById('apiLoginPw');
+  if(msg) msg.textContent=reason==='save' ? 'Sign in to save to the cloud.' : 'Enter the app password to sync with the cloud.';
+  if(err) err.textContent='';
+  if(pw) pw.value='';
+  const ov=document.getElementById('loginOverlay');
+  if(ov){ ov.classList.remove('hidden'); setTimeout(()=>pw&&pw.focus(),80); }
+}
+function hideLoginOverlay(){
+  const ov=document.getElementById('loginOverlay');
+  if(ov) ov.classList.add('hidden');
+  const pw=document.getElementById('apiLoginPw');
+  if(pw) pw.value='';
+}
+async function doApiLogin(){
+  const pwEl=document.getElementById('apiLoginPw');
+  const errEl=document.getElementById('apiLoginErr');
+  const password=pwEl?pwEl.value.trim():'';
+  if(!password){ if(errEl) errEl.textContent='Enter the password.'; return; }
+  if(errEl) errEl.textContent='';
+  try{
+    const res=await fetch(REMOTE_LOGIN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data&&data.token){
+      setApiToken(data.token);
+      hideLoginOverlay();
+      if(typeof window._afterLoginRetry==='function') window._afterLoginRetry();
+      return;
+    }
+    if(errEl) errEl.textContent=data.message||'Invalid password.';
+  }catch(e){
+    if(errEl) errEl.textContent='Network error. Try again.';
+  }
+}
+function doApiLogout(){
+  clearApiToken();
+  toast('Logged out from cloud');
+}
 function getStatePayload(){
   return {
     rosterTabs:rosterTabs.map(t=>({
@@ -1581,9 +1632,17 @@ async function _doSave(){
     setSaveStatus('saving','Saving…','Syncing to cloud');
     const data=getStatePayload();
     try{
-      const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(data)});
       if(res.ok){
         setSaveStatus('idle','Saved to cloud',fmtSaveTime(data.ts));
+        return;
+      }
+      if(res.status===401){
+        clearApiToken();
+        window._afterLoginRetry=()=>{window._afterLoginRetry=null;_doSave();};
+        showLoginOverlay('save');
+        localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+        setSaveStatus('idle','Saved locally (login required for cloud)',fmtSaveTime(data.ts));
         return;
       }
     }catch(remoteErr){
@@ -1760,7 +1819,7 @@ function showCloudSyncNotification(){
 }
 async function loadStateAsync(){
   try{
-    const res=await fetch(REMOTE_STATE_URL);
+    const res=await fetch(REMOTE_STATE_URL,{headers:apiHeaders()});
     if(res.ok){
       const data=await res.json();
       if(data&&Array.isArray(data.rosterTabs)&&data.rosterTabs.length>0){
@@ -1769,6 +1828,15 @@ async function loadStateAsync(){
         showCloudSyncNotification();
         return true;
       }
+    }
+    if(res.status===401){
+      clearApiToken();
+      window._afterLoginRetry=()=>{window._afterLoginRetry=null;loadStateAsync().then(()=>{if(typeof renderAll==='function')renderAll();if(typeof checkViewport==='function')checkViewport();});};
+      showLoginOverlay('load');
+      const loaded=loadState();
+      if(loaded) setSaveStatus('idle','Saved locally',fmtSaveTime(null));
+      else setSaveStatus('idle','Login required for cloud','Enter password to sync');
+      return loaded;
     }
   }catch(e){
     console.warn('Remote load failed:',e);
@@ -5954,6 +6022,7 @@ function renderGearMenu(){
   h+=`<button class="gear-item" onclick="gearAction(openEasyModeConfig)"><i data-lucide="eye-off"></i>Easy Mode Visibility</button>`;
   h+=`<button class="gear-item" onclick="gearAction(showAuthSetup)"><i data-lucide="key"></i>Change Password</button>`;
   h+=`<button class="gear-item" onclick="gearAction(()=>{applyEasyMode(true);toast('Locked')})"><i data-lucide="lock"></i>Lock to Easy Mode</button>`;
+  h+=`<button class="gear-item" onclick="gearAction(doApiLogout)"><i data-lucide="log-out"></i>Log out (cloud)</button>`;
   h+=`<div class="gear-sep"></div>`;
   h+=`<div class="gear-dd-hd">Danger Zone</div>`;
   h+=`<button class="gear-item danger" onclick="gearAction(resetEverything)"><i data-lucide="alert-triangle"></i>Reset Everything</button>`;
@@ -7124,6 +7193,15 @@ init();
 </script>
 <div class="ai-lock hidden" id="aiLock"><div class="ai-lock-spinner"></div><div class="ai-lock-text">AI is working...</div><div class="ai-lock-sub">Analysing and applying changes</div></div>
 <div class="auth-overlay hidden" id="authOverlay"></div>
+<div class="auth-overlay hidden" id="loginOverlay">
+  <div class="auth-box">
+    <h2 style="margin:0 0 16px;font-size:1.25rem">Cloud login</h2>
+    <p id="loginOverlayMsg" style="margin:0 0 12px;color:var(--s400);font-size:0.9rem">Enter the app password to sync with the cloud.</p>
+    <div class="auth-field"><label>Password</label><input type="password" id="apiLoginPw" placeholder="Password" onkeydown="if(event.key==='Enter')doApiLogin()"></div>
+    <button class="auth-btn auth-btn-primary" onclick="doApiLogin()">Log in</button>
+    <div class="auth-error" id="apiLoginErr"></div>
+  </div>
+</div>
 
 <script>
 /* ===== Patch v4: hours override behavior, live sync, expanded clashes, smarter autogen, context menus, lock sync ===== */
