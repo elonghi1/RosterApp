@@ -2393,13 +2393,18 @@ function copyDayCol(fromDi,toDi){
 }
 
 function duplicateSchedule(fromSid,toSid){
-  const from=staff.find(x=>x.id===fromSid);
-  const to=staff.find(x=>x.id===toSid);
-  if(!from||!to)return;
+  const fromEntry=findStaffById(fromSid);
+  const toEntry=findStaffById(toSid);
+  if(!fromEntry||!toEntry){toast('Staff not found');return;}
+  const from=fromEntry.s, to=toEntry.s;
   pushUndo("Duplicate schedule");
-  to.shifts.forEach((_,i)=>{to.shifts[i]={...from.shifts[i]}});
+  const wk=weekKey();
+  const srcShifts=from.shifts||from.weekShifts?.[wk]||ew();
+  if(!to.weekShifts)to.weekShifts={};
+  to.weekShifts[wk]=srcShifts.map(sh=>({...sh}));
+  to.shifts=to.weekShifts[wk];
   renderAll();
-  toast(`Copied ${from.name}'s schedule → ${to.name}`);
+  toast(`Copied ${from.name}'s schedule → ${to.name}${toEntry.tabId!==fromEntry.tabId?' ('+toEntry.tabName+')':''}`);
 }
 
 function openCopyDayPopup(){
@@ -2415,15 +2420,18 @@ function openCopyDayPopup(){
 }
 
 function openDuplicateSchedulePopup(fromSid){
-  const from=staff.find(x=>x.id===fromSid);
-  if(!from)return;
-  const others=activeStaff().filter(s=>s.id!==fromSid);
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const fromEntry=findStaffById(fromSid);
+  if(!fromEntry){toast('Staff not found');return;}
+  const from=fromEntry.s;
+  const others=allStaffWithTab().filter(x=>x.s.id!==fromSid);
   if(!others.length){toast('No other staff to copy to');return}
-  let h='<div class="pop-box" onclick="event.stopPropagation()" style="width:280px">';
-  h+=`<div class="pop-title"><i data-lucide="copy"></i> Copy ${from.name}'s Week</div>`;
-  h+=`<div style="font-size:11px;color:var(--s400);margin-bottom:10px;text-align:center">Apply ${from.name}'s full schedule to:</div>`;
-  others.forEach(s=>{
-    h+=`<button class="pop-btn" style="background:var(--s50)" onclick="duplicateSchedule(${fromSid},${s.id});closePop()">${s.name}</button>`;
+  let h='<div class="pop-box" onclick="event.stopPropagation()" style="width:320px;max-height:70vh;overflow-y:auto">';
+  h+=`<div class="pop-title"><i data-lucide="copy"></i> Copy ${esc(from.name)}'s Week</div>`;
+  h+=`<div style="font-size:11px;color:var(--s400);margin-bottom:10px;text-align:center">Apply to (any roster/store):</div>`;
+  others.forEach(({s,tabName})=>{
+    const label=tabName&&tabName!==R().name?s.name+' · '+tabName:s.name;
+    h+=`<button class="pop-btn" style="background:var(--s50)" onclick="duplicateSchedule(${fromSid},${s.id});closePop()">${esc(label)}</button>`;
   });
   h+=`<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="closePop()">Cancel</button>`;
   h+='</div>';
@@ -2556,6 +2564,30 @@ function finishEditRate(id){const e=el('er-'+id);if(e){const s=staff.find(x=>x.i
 function activeStaff(){
   const wk=weekKey();
   return staff.filter(s=>!s.leftOn||s.leftOn>wk);
+}
+
+// All staff across all visible roster tabs (for paste/duplicate everywhere). Returns [{s, tabName, tabId}].
+function allStaffWithTab(){
+  const wk=weekKey();
+  const tabs=!activeEntityId?rosterTabs:rosterTabs.filter(t=>(t.entityId||null)===activeEntityId);
+  const out=[];
+  tabs.forEach(t=>{
+    (t.staff||[]).forEach(s=>{
+      if(s.leftOn&&s.leftOn<=wk)return;
+      out.push({s,tabName:t.name,tabId:t.id});
+    });
+  });
+  return out;
+}
+
+// Find staff by id in any roster tab. Returns {s, tabId, tabName} or null.
+function findStaffById(sid){
+  for(let i=0;i<rosterTabs.length;i++){
+    const t=rosterTabs[i];
+    const s=(t.staff||[]).find(x=>x.id===sid);
+    if(s)return {s,tabId:t.id,tabName:t.name};
+  }
+  return null;
 }
 
 // Helper: detect hybrid staff (same name across multiple roster tabs)
@@ -5557,7 +5589,10 @@ function clipPasteWeek(s){
   const shifts=c?.shifts||c?.week;
   if(!shifts){toast('Nothing to paste — copy a week first');return false}
   pushUndo('Paste week');
-  s.shifts.forEach((_,i)=>{s.shifts[i]={...shifts[i]}});
+  const wk=weekKey();
+  if(!s.weekShifts)s.weekShifts={};
+  s.weekShifts[wk]=Array.isArray(shifts)?shifts.map(sh=>({...sh})):ew();
+  s.shifts=s.weekShifts[wk];
   renderAll();
   toast('Week pasted to '+s.name);
   return true;
@@ -5596,20 +5631,23 @@ const _parseCell=(cell,nextCell='')=>{
 
 // Smart paste: tries internal clipboard first, then reads OS clipboard text
 function pasteFromClipboard(){
-  // If we have an internal week clipboard with data, offer to paste to all staff
+  // If we have an internal week clipboard with data, offer to paste to any staff (all rosters/stores)
   if(clipHasWeek()){
     const wk=window._rosterClip.week;
-    const vs=activeStaff();
-    if(vs.length===0){
-      toast('No staff on roster — add staff first');
+    const all=allStaffWithTab();
+    if(all.length===0){
+      toast('No staff in any roster — add staff first');
       return;
     }
-    // Show a context menu letting user pick who to paste the week to
     const x=window.innerWidth/2, y=200;
     const items=[
-      {icon:'info',label:`Paste ${wk?.name||'copied'} week to:`,action(){}},
+      {icon:'info',label:`Paste ${wk?.name||'copied'} week to (any roster):`,action(){}},
       'sep',
-      ...vs.map(s=>({icon:'clipboard',label:s.name,action(){clipPasteWeek(s)}})),
+      ...all.map(({s,tabName})=>({
+        icon:'clipboard',
+        label:tabName&&tabName!==R().name?s.name+' · '+tabName:s.name,
+        action(){clipPasteWeek(s)}
+      })),
     ];
     showCtx(x,y,items);
     return;
