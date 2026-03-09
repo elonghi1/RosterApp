@@ -1145,7 +1145,6 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
       </select>
       <div id="addSalaryWrap" style="display:none"><input class="inp inp-sm" id="addSalary" type="number" placeholder="€/year" style="width:100px" step="100"></div>
       <input class="inp inp-sm" id="addMaxH" type="number" placeholder="Max hrs/wk" style="width:100px" step="1" title="Max declared hours per week (0 = no limit, excess = cash)">
-      <input class="inp inp-sm" id="addCashRate" type="number" placeholder="Cash €/hr" style="width:90px" step="0.5" title="Cash rate for hours over max">
     </div>
     <div class="form-hint">Pay type & max hours optional — can be set later via right-click → Pay settings</div>
   </div>
@@ -2237,7 +2236,6 @@ function openAddStaffPopupShop(){
   h+='<div class="auth-field"><label>Salary / year (€)</label><input class="inp" type="number" id="shopAddSalary" value="0"></div>';
   h+='<div class="auth-field"><label>Max hours / week</label><input class="inp" type="number" id="shopAddMaxH" value="0"></div>';
   h+='</div>';
-  h+='<div class="auth-field"><label>Cash rate (optional)</label><input class="inp" type="number" id="shopAddCashRate" value="0"></div>';
 
   h+='<div style="font-size:11px;font-weight:800;color:var(--s600);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.3px">Preferences (variable shifts)</div>';
   ensureStoreSettingsDefaults();
@@ -2274,7 +2272,7 @@ function doAddFromShopPopup(){
   const shiftTypeIds=[...document.querySelectorAll('#shopAddPrefShifts button[data-id]')].filter(b=>b.dataset.on==='1').map(b=>b.dataset.id);
   const daysOff=[...document.querySelectorAll('#shopAddPrefDays button[data-di]')].filter(b=>b.dataset.on==='1').map(b=>parseInt(b.dataset.di));
 
-  const _ns={id:nid++,name:nm,rate,cashRate:parseFloat(el('shopAddCashRate')?.value||'0')||0,maxHours:mh,salary:sal,payType:pt,badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds,daysOff},shifts:ew(),weekShifts:{}};
+  const _ns={id:nid++,name:nm,rate,cashRate:0,maxHours:mh,salary:sal,payType:pt,badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds,daysOff},shifts:ew(),weekShifts:{}};
   _ns.weekShifts[weekKey()]=_ns.shifts;
   staff.push(_ns);
   closePop();
@@ -2288,7 +2286,7 @@ function doAdd(){
   const mh=parseFloat((el('addMaxH')||{}).value)||0;
   let rate=parseFloat(r.value)||0;
   if(pt==='salary'&&sal>0&&mh>0)rate=sal/(52*mh);
-  const _ns={id:nid++,name:nm,rate,cashRate:parseFloat((el('addCashRate')||{}).value)||0,maxHours:mh,salary:sal,payType:pt,badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds:[],daysOff:[]},shifts:ew(),weekShifts:{}};_ns.weekShifts[weekKey()]=_ns.shifts;staff.push(_ns);n.value='';n.focus();renderAll()}
+  const _ns={id:nid++,name:nm,rate,cashRate:0,maxHours:mh,salary:sal,payType:pt,badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds:[],daysOff:[]},shifts:ew(),weekShifts:{}};_ns.weekShifts[weekKey()]=_ns.shifts;staff.push(_ns);n.value='';n.focus();renderAll()}
 function doBulk(){
   pushUndo("Bulk add staff");const ns=el('bulkNames').value.split('\n').map(n=>n.trim()).filter(Boolean);const rate=parseFloat(el('bulkRate').value)||0;ns.forEach(nm=>{const _ns={id:nid++,name:nm,rate,cashRate:0,maxHours:0,salary:0,payType:'hourly',badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds:[],daysOff:[]},shifts:ew(),weekShifts:{}};_ns.weekShifts[weekKey()]=_ns.shifts;staff.push(_ns)});el('bulkNames').value='';hideBulk();renderAll()}
 function rmStaff(id){
