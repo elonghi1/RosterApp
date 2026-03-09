@@ -648,23 +648,23 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .stores-bar{background:linear-gradient(135deg,var(--purple-50),var(--pink-50));border-bottom:1px solid var(--s100);padding:10px 20px}
 .stores-bar-inner{max-width:80%;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .stores-bar-label{font-size:11px;font-weight:700;color:var(--purple-600);text-transform:uppercase;letter-spacing:.4px;display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
-.stores-bar-list{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1;min-width:0}
-.stores-bar-list .store-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;background:var(--white);border:1px solid var(--purple-200);font-size:12px;font-weight:600;color:var(--s700);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.stores-bar-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:0}
+.stores-bar-list .store-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;background:var(--white);border:1px solid var(--purple-200);font-size:14px;font-weight:600;color:var(--s700);box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .stores-bar-list .store-chip.empty{color:var(--s400);font-weight:500}
 .stores-bar-list .store-chip.active{background:var(--purple-100);border-color:var(--purple-400);color:var(--purple-700);box-shadow:0 0 0 2px var(--purple-200)}
 .stores-bar-list button.store-chip{cursor:pointer;border:none;font-family:inherit}
 .stores-bar-list button.store-chip:hover{background:var(--white);border-color:var(--purple-300)}
-.stores-bar-list .store-chip-count{font-size:10px;opacity:.85;margin-left:2px}
+.stores-bar-list .store-chip-count{font-size:12px;opacity:.85;margin-left:2px}
 .stores-bar-actions{display:flex;gap:6px;flex-shrink:0}
 .rtabs-wrap{display:flex;align-items:stretch;background:var(--white);border-radius:14px;border:1px solid var(--s100);margin-bottom:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.03)}
 .rtabs-scroll{display:flex;flex:1;overflow-x:auto;gap:0;scrollbar-width:none;padding:4px 4px 4px 4px}
 .rtabs-scroll::-webkit-scrollbar{display:none}
-.rtab{display:flex;align-items:center;gap:6px;padding:9px 16px;font-size:12px;font-weight:600;color:var(--s500);cursor:pointer;border:none;background:transparent;border-radius:10px;white-space:nowrap;font-family:inherit;transition:all .2s cubic-bezier(.4,0,.2,1);position:relative;min-width:0;margin-right:2px}
+.rtab{display:flex;align-items:center;gap:8px;padding:11px 18px;font-size:14px;font-weight:600;color:var(--s500);cursor:pointer;border:none;background:transparent;border-radius:10px;white-space:nowrap;font-family:inherit;transition:all .2s cubic-bezier(.4,0,.2,1);position:relative;min-width:0;margin-right:2px}
 .rtab:hover{background:var(--pink-50);color:var(--s700)}
 .rtab.active{background:linear-gradient(135deg,var(--pink-50),var(--purple-50));color:var(--pink-600);box-shadow:0 1px 3px rgba(219,39,119,.12)}
 .rtab.rtab-drag-over{background:var(--purple-50);border:2px dashed var(--purple-300);color:var(--purple-600)}
-.rtab svg{width:13px;height:13px;flex-shrink:0}
-.rtab-name{overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.rtab svg{width:15px;height:15px;flex-shrink:0}
+.rtab-name{overflow:hidden;text-overflow:ellipsis;max-width:160px}
 .rtab-x{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--s400);cursor:pointer;opacity:0;transition:all .1s;flex-shrink:0;background:none;border:none;font-family:inherit;line-height:1}
 .rtab:hover .rtab-x{opacity:1}
 .rtab-x:hover{background:var(--pink-100);color:var(--pink-500)}
@@ -725,7 +725,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .wrap{max-width:100%;padding:12px 14px 90px;padding-bottom:calc(90px + env(safe-area-inset-bottom,0))}
   .stores-bar-inner{max-width:100%;padding:8px 12px}
   .stores-bar{padding:8px 12px}
-  .stores-bar-list .store-chip{padding:8px 12px;font-size:13px;min-height:48px;min-width:48px}
+  .stores-bar-list .store-chip{padding:10px 14px;font-size:14px;min-height:52px;min-width:52px}
   .hdr{padding:16px 14px 14px;padding-top:calc(16px + env(safe-area-inset-top,0))}
   .hdr h1{font-size:18px}
   .hdr p{font-size:11px}
@@ -758,8 +758,8 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .sh-times .sh-st,.sh-times .sh-en{font-size:10px}
   .sh-badge{font-size:8px;padding:2px 4px}
   .rtabs-wrap{margin-bottom:10px;border-radius:12px}
-  .rtab{padding:8px 12px;font-size:11px;min-height:44px}
-  .rtab-name{max-width:90px}
+  .rtab{padding:10px 14px;font-size:13px;min-height:48px}
+  .rtab-name{max-width:110px}
   .rtab-add,.rtab-x{min-width:44px;min-height:44px}
   .cal-nav{border-radius:12px;margin-bottom:12px}
   .cal-hd{padding:12px 14px}
@@ -807,8 +807,8 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .sh-cell{min-height:56px;padding:6px 3px}
   .sh-times{padding:4px 6px}
   .sh-times .sh-st,.sh-times .sh-en{font-size:10px}
-  .rtab{padding:10px 12px;min-height:46px}
-  .rtab-name{max-width:80px}
+  .rtab{padding:10px 14px;min-height:48px;font-size:13px}
+  .rtab-name{max-width:100px}
   .stats{grid-template-columns:1fr;gap:10px}
   .stat{padding:16px 14px}
   .stat-v{font-size:24px}
@@ -833,7 +833,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .staff-col{min-width:120px;max-width:140px}
   .nm-name,.roster-id-name{font-size:13px}
   .tab{min-width:70px;padding:8px 8px}
-  .rtab-name{max-width:60px}
+  .rtab-name{max-width:72px}
 }
 /* Touch-friendly: ensure tap targets */
 @media(hover:none) and (pointer:coarse){
@@ -867,6 +867,11 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .mob-sync-dot.error{background:#f87171}
 .mob-gear{width:48px;height:48px;min-width:48px;min-height:48px;border-radius:12px;background:rgba(255,255,255,.2);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mob-gear svg{width:22px;height:22px}
+.mob-stores-bar{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:10px 16px;padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));background:linear-gradient(135deg,var(--purple-50),var(--pink-50));border-bottom:1px solid var(--s100)}
+.mob-stores-label{font-size:11px;font-weight:700;color:var(--purple-600);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;display:inline-flex;align-items:center;gap:4px}
+.mob-stores-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mob-stores-list::-webkit-scrollbar{display:none}
+.mob-stores-list .store-chip{flex-shrink:0}
 .mob-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 16px;padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));padding-bottom:calc(12px + env(safe-area-inset-bottom,0))}
 .mob-tabs{flex-shrink:0;display:flex;background:var(--white);border-top:1px solid var(--s200);padding-bottom:env(safe-area-inset-bottom,0);padding-top:8px;box-shadow:0 -2px 12px rgba(0,0,0,.06)}
 .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;min-height:56px;min-width:48px;border:none;background:none;color:var(--s400);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:color .15s,background .15s;-webkit-tap-highlight-color:transparent}
@@ -1371,6 +1376,10 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
       <button type="button" class="mob-gear" id="mobGearBtn" onclick="toggleGearMenu(event)" aria-label="Settings"><i data-lucide="settings"></i></button>
     </div>
   </header>
+  <div class="mob-stores-bar" id="mobStoresBar">
+    <span class="mob-stores-label"><i data-lucide="building-2"></i> Store</span>
+    <div class="mob-stores-list" id="mobStoresBarList"></div>
+  </div>
   <main class="mob-content" id="mobContent"></main>
   <nav class="mob-tabs">
     <button type="button" class="mob-tab" data-mob="roster" onclick="setMobTab('roster')"><i data-lucide="layout-grid"></i> Roster</button>
@@ -1933,6 +1942,7 @@ function setActiveEntity(id){
   renderAll();
   if(typeof renderPay==='function')renderPay();
   if(typeof renderDash==='function')renderDash();
+  if(typeof isMobile==='function'&&isMobile()&&typeof setMobTab==='function')setMobTab(typeof mobileTab!=='undefined'?mobileTab:'roster');
   saveState();
 }
 function setRosterEntity(tabId,entityId){
@@ -6535,7 +6545,8 @@ function saveStoreStaffAssignments(storeId){
 }
 function renderStoresBar(){
   const listEl=document.getElementById('storesBarList');
-  if(!listEl)return;
+  const mobList=document.getElementById('mobStoresBarList');
+  if(!listEl&&!mobList)return;
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const allActive=!activeEntityId;
   let html='<button type="button" class="store-chip'+(allActive?' active':'')+'" onclick="setActiveEntity(null)" title="Show all rosters">All</button>';
@@ -6550,7 +6561,8 @@ function renderStoresBar(){
   }else{
     html+='<span class="store-chip empty">No stores — add stores to filter rosters</span>';
   }
-  listEl.innerHTML=html;
+  if(listEl)listEl.innerHTML=html;
+  if(mobList)mobList.innerHTML=html;
   if(window.lucide)lucide.createIcons();
 }
 
