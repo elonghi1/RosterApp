@@ -725,6 +725,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .wrap{max-width:100%;padding:12px 14px 90px;padding-bottom:calc(90px + env(safe-area-inset-bottom,0))}
   .stores-bar-inner{max-width:100%;padding:8px 12px}
   .stores-bar{padding:8px 12px}
+  .stores-bar-list .store-chip{padding:8px 12px;font-size:13px;min-height:44px}
   .hdr{padding:16px 14px 14px}
   .hdr h1{font-size:18px}
   .hdr p{font-size:11px}
@@ -734,66 +735,119 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .gear-btn{min-width:44px;min-height:44px}
   .card-hd,.card-bd{padding:12px 14px}
   .card-hd h2{font-size:14px}
-  .tab{padding:12px 8px;font-size:11px;min-height:44px}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:12px 10px;font-size:11px;min-height:44px;flex:0 0 auto;min-width:80px}
   .tab svg{width:14px;height:14px}
-  .toolbar{gap:6px;margin-bottom:10px}
-  .btn{min-height:44px;padding:8px 12px;font-size:12px}
-  .r-wrap{margin-bottom:10px;border-radius:14px;-webkit-overflow-scrolling:touch}
+  .toolbar{gap:8px;margin-bottom:12px}
+  .btn{min-height:44px;padding:10px 14px;font-size:12px}
+  .r-wrap{margin-bottom:10px;border-radius:14px;-webkit-overflow-scrolling:touch;overflow-x:auto}
   .r-tbl th{padding:10px 6px;font-size:10px;min-width:70px}
-  .r-tbl th:first-child{width:150px;min-width:150px;padding-left:10px;font-size:10px}
-  .r-tbl td:first-child{width:150px;min-width:150px;max-width:180px}
+  .r-tbl th:first-child{width:150px;min-width:150px;padding-left:10px;font-size:10px;position:sticky;left:0;z-index:2;background:#fdfbff;box-shadow:4px 0 8px -2px rgba(0,0,0,.06)}
+  .r-tbl td:first-child{width:150px;min-width:150px;max-width:180px;position:sticky;left:0;z-index:1;background:var(--white);box-shadow:4px 0 8px -2px rgba(0,0,0,.05)}
+  .r-tbl tbody tr:nth-child(even) td:first-child{background:#fdfbff}
+  .r-tbl tbody tr:hover td:first-child{background:#fdfbff}
   .roster-table .staff-cell{min-width:150px;width:150px}
   .staff-col{min-width:150px;max-width:180px}
   .nm-inner{padding:8px 10px}
   .nm-name,.roster-id-name{font-size:14px;font-weight:700;color:#1e293b;white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3;-webkit-font-smoothing:antialiased}
   .roster-id-rate{font-size:12px}
+  .roster-id-badges .staff-badge,.roster-id-badges .conflict-icon,.roster-id-badges .roster-inline-badge{font-size:9px!important;padding:3px 6px!important}
   .nm-rate,.hrs-val{font-size:11px}
-  .sh-cell{min-height:52px;padding:6px 4px}
+  .sh-cell{min-height:52px;padding:8px 4px}
   .sh-times .sh-st,.sh-times .sh-en{font-size:10px}
   .sh-badge{font-size:8px;padding:2px 4px}
   .rtabs-wrap{margin-bottom:10px;border-radius:12px}
   .rtab{padding:8px 12px;font-size:11px;min-height:44px}
   .rtab-name{max-width:90px}
   .rtab-add,.rtab-x{min-width:44px;min-height:44px}
-  .paint-bar,.add-form,.shifts-panel{padding:10px 12px;margin-bottom:10px}
-  .chip-row{gap:6px}
-  .chip{padding:8px 12px;font-size:11px;min-height:44px}
-  .pop-box{width:94vw;max-width:94vw;padding:14px}
-  .toast{bottom:calc(20px + env(safe-area-inset-bottom,0));left:12px;right:12px;transform:none;width:auto;max-width:100%}
+  .cal-nav{border-radius:12px;margin-bottom:12px}
+  .cal-hd{padding:12px 14px}
+  .cal-hd-title{font-size:14px}
+  .cal-hd-btns button{width:36px;height:36px;min-width:36px;min-height:36px}
+  .cal-dow{font-size:10px;padding:6px 0}
+  .cal-day{min-height:36px;font-size:12px;padding:6px 2px}
+  .paint-bar,.add-form,.shifts-panel{padding:12px 14px;margin-bottom:12px}
+  .chip-row{gap:8px}
+  .chip{padding:10px 14px;font-size:12px;min-height:44px}
+  .pop-over{align-items:flex-end;justify-content:flex-end;padding:0}
+  .pop-box{width:100%;max-width:100%;max-height:90vh;padding:20px 16px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0));border-radius:20px 20px 0 0;margin:0}
+  .pop-btn{min-height:48px;padding:12px 14px;font-size:14px}
+  .inp,.inp-sm{padding:10px 14px;font-size:16px;min-height:48px}
+  .toast{bottom:calc(20px + env(safe-area-inset-bottom,0));left:12px;right:12px;transform:none;width:auto;max-width:100%;font-size:14px;padding:12px 20px}
   .ai-fab{bottom:calc(20px + env(safe-area-inset-bottom,0));right:14px}
-  body.grid-mode .r-tbl td:first-child{width:150px;min-width:150px;max-width:180px}
+  .stat{padding:14px 12px}
+  .stat-v{font-size:22px}
+  .stat-l{font-size:10px}
+  .gear-item{min-height:48px;padding:12px 14px;font-size:13px}
+  .gear-dd{min-width:260px;max-width:calc(100vw - 24px)}
+  .ctx-menu{min-width:200px;max-width:calc(100vw - 24px)}
+  .ctx-menu button,.ctx-menu [role="button"]{min-height:48px;padding:12px 14px;font-size:13px}
+  body.grid-mode .r-tbl td:first-child{width:150px;min-width:150px;max-width:180px;background:var(--s50);box-shadow:4px 0 8px -2px rgba(0,0,0,.05)}
+  body.grid-mode .r-tbl tbody tr:nth-child(even) td:first-child{background:#f1f5f9}
 }
 @media(max-width:480px){
-  .wrap{padding:10px 12px 80px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0))}
-  .hdr{padding:12px 12px 10px}
-  .hdr h1{font-size:16px}
+  .wrap{padding:10px 10px 80px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0))}
+  .hdr{padding:14px 12px 12px}
+  .hdr h1{font-size:17px}
   .hdr-actions{flex-wrap:wrap;gap:8px}
   .hdr-btns{width:100%;justify-content:flex-start}
   .sync-chip .sync-text span{display:none}
   .sync-chip{min-width:0}
-  .r-tbl th:first-child{width:130px;min-width:130px}
-  .r-tbl td:first-child{width:130px;min-width:130px;max-width:160px}
-  .roster-table .staff-cell{min-width:130px;width:130px}
-  .staff-col{min-width:130px;max-width:160px}
-  .r-tbl th:first-child{width:130px;min-width:130px}
-  .r-tbl td:first-child{width:130px;min-width:130px;max-width:160px}
-  .nm-name,.roster-id-name{font-size:13px;font-weight:700;color:#1e293b;white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;-webkit-font-smoothing:antialiased}
+  .card-hd,.card-bd{padding:12px 12px}
+  .card-hd h2{font-size:13px}
+  .r-tbl th:first-child{width:140px;min-width:140px;padding-left:8px;font-size:9px}
+  .r-tbl td:first-child{width:140px;min-width:140px;max-width:160px}
+  .roster-table .staff-cell{min-width:140px;width:140px}
+  .staff-col{min-width:140px;max-width:160px}
+  .nm-inner{padding:8px 8px}
+  .nm-name,.roster-id-name{font-size:14px;font-weight:700;color:#1e293b;line-height:1.35;-webkit-line-clamp:2}
   .roster-id-rate{font-size:11px}
-  .sh-cell{min-height:48px;padding:4px 2px}
-  .sh-times{padding:3px 5px}
-  .sh-times .sh-st,.sh-times .sh-en{font-size:9px}
-  .rtab{padding:8px 10px}
-  .rtab-name{max-width:70px}
-  .stats{grid-template-columns:1fr;gap:8px}
-  .dash-grid{grid-template-columns:1fr}
+  .sh-cell{min-height:56px;padding:6px 3px}
+  .sh-times{padding:4px 6px}
+  .sh-times .sh-st,.sh-times .sh-en{font-size:10px}
+  .rtab{padding:10px 12px;min-height:46px}
+  .rtab-name{max-width:80px}
+  .stats{grid-template-columns:1fr;gap:10px}
+  .stat{padding:16px 14px}
+  .stat-v{font-size:24px}
+  .stat-l{font-size:11px}
+  .dash-grid{grid-template-columns:1fr;gap:12px}
   .form-row{flex-direction:column;align-items:stretch}
-  .form-row .btn,.form-row input{width:100%}
-  body.grid-mode .r-tbl td:first-child{width:130px;min-width:130px;max-width:160px}
+  .form-row .btn,.form-row input{width:100%;min-height:48px}
+  .cal-hd{padding:10px 12px}
+  .cal-hd-title{font-size:13px}
+  .cal-grid{padding:8px 8px 12px}
+  .cal-day{min-height:38px;font-size:11px}
+  .pop-box{padding:24px 16px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0))}
+  .pop-btn{min-height:52px;font-size:15px}
+  body.grid-mode .r-tbl td:first-child{width:140px;min-width:140px;max-width:160px}
+}
+@media(max-width:360px){
+  .wrap{padding:8px 8px 70px;padding-bottom:calc(70px + env(safe-area-inset-bottom,0))}
+  .hdr h1{font-size:15px}
+  .r-tbl th:first-child{width:120px;min-width:120px}
+  .r-tbl td:first-child{width:120px;min-width:120px;max-width:140px}
+  .roster-table .staff-cell{min-width:120px;width:120px}
+  .staff-col{min-width:120px;max-width:140px}
+  .nm-name,.roster-id-name{font-size:13px}
+  .tab{min-width:70px;padding:8px 8px}
+  .rtab-name{max-width:60px}
 }
 /* Touch-friendly: ensure tap targets */
 @media(hover:none) and (pointer:coarse){
   .act{min-width:44px;min-height:44px;padding:10px}
   .rtab-x{min-width:44px;min-height:44px;opacity:1}
+  .cal-hd-btns button{min-width:44px;min-height:44px}
+  .wt{min-height:44px;padding:10px 14px}
+}
+/* Reduce motion on mobile for performance */
+@media(max-width:768px){
+  .hdr{animation:none}
+  .hdr::before,.hdr::after{animation:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .hdr,.hdr::before,.hdr::after,.sync-led,.card,.r-wrap,.stat,.rtabs-wrap,.cal-nav,.tabs,.add-form,.shifts-panel,.paint-bar{animation:none!important;transition-duration:.05s!important}
 }
 
 @media print{
