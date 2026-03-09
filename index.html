@@ -1306,6 +1306,7 @@ let activeEntityId=null; // when set, only rosters with this entityId are shown
 
 // ═══ Persistence ═══
 const SAVE_KEY='rosterPro_v1';
+const CLOUD_SNAPSHOT_KEY='rosterPro_cloudSnapshot';
 const REMOTE_STATE_URL='https://rosterapp-production-721b.up.railway.app/api/state';
 let _saveTimer=null;
 let saveStatus={state:'idle',message:'Saved locally',meta:'Ready for backup',ts:null};
@@ -1571,6 +1572,51 @@ function loadState(){
   }
 }
 
+function getCloudSummary(){
+  const rosterCount=rosterTabs.length;
+  const staffCount=rosterTabs.reduce((a,t)=>a+(t.staff?.length||0),0);
+  let shiftCount=0;
+  rosterTabs.forEach(t=>{
+    (t.staff||[]).forEach(s=>{
+      const ws=s.weekShifts||{};
+      Object.values(ws).forEach(arr=>{ shiftCount+=(arr&&arr.length)||0; });
+    });
+  });
+  return {rosterCount,staffCount,shiftCount,ts:Date.now()};
+}
+function getLastCloudSnapshot(){
+  try{
+    const raw=localStorage.getItem(CLOUD_SNAPSHOT_KEY);
+    if(!raw)return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function setLastCloudSnapshot(summary){
+  try{ localStorage.setItem(CLOUD_SNAPSHOT_KEY,JSON.stringify(summary)); }catch(e){}
+}
+function showCloudSyncNotification(){
+  const summary=getCloudSummary();
+  const prev=getLastCloudSnapshot();
+  let msg='';
+  if(prev){
+    const dr=summary.rosterCount-prev.rosterCount;
+    const ds=summary.staffCount-prev.staffCount;
+    const dsh=summary.shiftCount-prev.shiftCount;
+    const parts=[];
+    if(dr>0)parts.push(dr+' new roster'+(dr>1?'s':''));
+    if(dr<0)parts.push((-dr)+' roster'+(-dr>1?'s':'')+' removed');
+    if(ds>0)parts.push(ds+' staff added');
+    if(ds<0)parts.push((-ds)+' staff removed');
+    if(dsh>0)parts.push(dsh+' shift'+(dsh>1?'s':'')+' added');
+    if(dsh<0)parts.push((-dsh)+' shift'+(-dsh>1?'s':'')+' removed');
+    msg=parts.length?'Synced from cloud: '+parts.join(', '):'Synced from cloud: up to date';
+  }else{
+    const r=summary.rosterCount,s=summary.staffCount;
+    msg='Loaded from cloud: '+r+' roster'+(r!==1?'s':'')+', '+s+' staff';
+  }
+  toast(msg);
+  setLastCloudSnapshot(summary);
+}
 async function loadStateAsync(){
   try{
     const res=await fetch(REMOTE_STATE_URL);
@@ -1579,6 +1625,7 @@ async function loadStateAsync(){
       if(data&&Array.isArray(data.rosterTabs)&&data.rosterTabs.length>0){
         applyStatePayload(data,{persist:false});
         setSaveStatus('idle','Loaded from cloud',fmtSaveTime(data.ts));
+        showCloudSyncNotification();
         return true;
       }
     }
