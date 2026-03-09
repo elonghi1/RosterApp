@@ -1467,26 +1467,32 @@ function showLoginOverlay(reason){
   const msg=document.getElementById('loginOverlayMsg');
   const err=document.getElementById('apiLoginErr');
   const pw=document.getElementById('apiLoginPw');
+  const nameEl=document.getElementById('apiLoginName');
   if(msg) msg.textContent=reason==='save' ? 'Sign in to save to the cloud.' : 'Enter the app password to sync with the cloud.';
   if(err) err.textContent='';
   if(pw) pw.value='';
+  if(nameEl) nameEl.value='';
   const ov=document.getElementById('loginOverlay');
-  if(ov){ ov.classList.remove('hidden'); setTimeout(()=>pw&&pw.focus(),80); }
+  if(ov){ ov.classList.remove('hidden'); setTimeout(()=>(nameEl&&nameEl.focus())||(pw&&pw.focus()),80); }
 }
 function hideLoginOverlay(){
   const ov=document.getElementById('loginOverlay');
   if(ov) ov.classList.add('hidden');
   const pw=document.getElementById('apiLoginPw');
   if(pw) pw.value='';
+  const nameEl=document.getElementById('apiLoginName');
+  if(nameEl) nameEl.value='';
 }
 async function doApiLogin(){
   const pwEl=document.getElementById('apiLoginPw');
+  const nameEl=document.getElementById('apiLoginName');
   const errEl=document.getElementById('apiLoginErr');
   const password=pwEl?pwEl.value.trim():'';
+  const username=nameEl?nameEl.value.trim():'';
   if(!password){ if(errEl) errEl.textContent='Enter the password.'; return; }
   if(errEl) errEl.textContent='';
   try{
-    const res=await fetch(REMOTE_LOGIN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})});
+    const res=await fetch(REMOTE_LOGIN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username||'Anonymous',password})});
     const data=await res.json().catch(()=>({}));
     if(res.ok&&data&&data.token){
       setApiToken(data.token);
@@ -1798,7 +1804,7 @@ function getLastCloudSnapshot(){
 function setLastCloudSnapshot(summary){
   try{ localStorage.setItem(CLOUD_SNAPSHOT_KEY,JSON.stringify(summary)); }catch(e){}
 }
-function showCloudSyncNotification(){
+function showCloudSyncNotification(loadedState){
   const summary=getCloudSummary();
   let prev=getLastCloudSnapshot();
   if(prev&&prev.ts&&(Date.now()-prev.ts>CLOUD_SNAPSHOT_MAX_AGE_MS)) prev=null;
@@ -1819,6 +1825,8 @@ function showCloudSyncNotification(){
     const r=summary.rosterCount,s=summary.staffCount;
     msg='Loaded from cloud: '+r+' roster'+(r!==1?'s':'')+', '+s+' staff';
   }
+  const by=loadedState&&loadedState.lastModifiedBy&&String(loadedState.lastModifiedBy).trim();
+  if(by) msg+=' (last by '+by+')';
   toast(msg,4000);
   setLastCloudSnapshot(summary);
   const label=document.getElementById('saveStatusLabel');
@@ -1834,7 +1842,7 @@ async function loadStateAsync(){
       if(data&&Array.isArray(data.rosterTabs)&&data.rosterTabs.length>0){
         applyStatePayload(data,{persist:false});
         setSaveStatus('idle','Loaded from cloud',fmtSaveTime(data.ts));
-        showCloudSyncNotification();
+        showCloudSyncNotification(data);
         return true;
       }
     }
@@ -7206,6 +7214,7 @@ init();
   <div class="auth-box">
     <h2 style="margin:0 0 16px;font-size:1.25rem">Cloud login</h2>
     <p id="loginOverlayMsg" style="margin:0 0 12px;color:var(--s400);font-size:0.9rem">Enter the app password to sync with the cloud.</p>
+    <div class="auth-field"><label>Your name (for sync)</label><input type="text" id="apiLoginName" placeholder="e.g. Alice" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('apiLoginPw').focus()"></div>
     <div class="auth-field"><label>Password</label><input type="password" id="apiLoginPw" placeholder="Password" onkeydown="if(event.key==='Enter')doApiLogin()"></div>
     <button class="auth-btn auth-btn-primary" onclick="doApiLogin()">Log in</button>
     <div class="auth-error" id="apiLoginErr"></div>

@@ -11,7 +11,7 @@ const STATE_FILE = process.env.STATE_FILE_PATH || path.join(__dirname, 'state.js
 // Optional: if set, GET/PUT /api/state require login. Set AUTH_PASSWORD to a strong password.
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD || '';
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const tokens = new Map(); // token -> { expiresAt }
+const tokens = new Map(); // token -> { username, expiresAt }
 
 function requireAuth(req, res, next) {
   if (!AUTH_PASSWORD) return next();
@@ -26,6 +26,7 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Session expired or invalid', code: 'unauthorized' });
   }
   req.authToken = token;
+  req.authUser = entry.username || 'Anonymous';
   next();
 }
 
@@ -37,17 +38,18 @@ app.get('/', (req, res) => {
   res.json({ ok: true, service: 'rosterapp-api', authRequired: !!AUTH_PASSWORD });
 });
 
-// POST /api/login — body: { password }. Returns { token } or 401.
+// POST /api/login — body: { username, password }. Username is for "who changed" in cloud sync only.
 app.post('/api/login', (req, res) => {
   if (!AUTH_PASSWORD) {
     return res.status(200).json({ token: 'no-auth', message: 'Auth not configured' });
   }
-  const { password } = req.body || {};
+  const { username, password } = req.body || {};
   if (!password || password !== AUTH_PASSWORD) {
     return res.status(401).json({ error: 'Invalid password', code: 'invalid_password' });
   }
   const token = crypto.randomBytes(32).toString('hex');
-  tokens.set(token, { expiresAt: Date.now() + TOKEN_TTL_MS });
+  const name = (username && String(username).trim()) ? String(username).trim().slice(0, 64) : 'Anonymous';
+  tokens.set(token, { username: name, expiresAt: Date.now() + TOKEN_TTL_MS });
   res.json({ token, expiresIn: TOKEN_TTL_MS });
 });
 
@@ -78,6 +80,10 @@ app.put('/api/state', requireAuth, (req, res) => {
     }
     if (!Array.isArray(data.rosterTabs)) {
       return res.status(400).json({ error: 'Missing or invalid rosterTabs' });
+    }
+    if (req.authUser) {
+      data.lastModifiedBy = req.authUser;
+      data.lastModifiedAt = Date.now();
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2), 'utf8');
     res.json({ ok: true, ts: Date.now() });
