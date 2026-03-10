@@ -574,6 +574,12 @@ body.grid-mode .hrs-val{font-size:13px;font-weight:500}
 
 /* ═══ Auth Modal ═══ */
 .auth-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:rgba(15,10,30,.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:authIn .2s ease}
+#loginOverlay{z-index:99999;pointer-events:auto}
+#loginOverlay .auth-box{pointer-events:auto}
+body.login-required .desktop-wrap{display:none!important}
+body.login-required #mobileShell{display:none!important}
+body.login-required .gear-dd{display:none!important}
+body.login-required #loginOverlay{display:flex!important}
 @keyframes authIn{from{opacity:0}to{opacity:1}}
 .auth-box{background:var(--white);border-radius:20px;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.2);border:1px solid var(--s100);width:340px;max-width:90vw;animation:popUp .2s ease}
 .auth-title{font-size:18px;font-weight:800;color:var(--s800);text-align:center;margin-bottom:4px}
@@ -1481,11 +1487,12 @@ function showLoginOverlay(reason){
   if(pw) pw.value='';
   if(nameEl) nameEl.value='';
   const ov=document.getElementById('loginOverlay');
-  if(ov){ ov.classList.remove('hidden'); setTimeout(()=>(nameEl&&nameEl.focus())||(pw&&pw.focus()),80); }
+  if(ov){ ov.classList.remove('hidden'); document.body.classList.add('login-required'); setTimeout(()=>(nameEl&&nameEl.focus())||(pw&&pw.focus()),80); }
 }
 function hideLoginOverlay(){
   const ov=document.getElementById('loginOverlay');
   if(ov) ov.classList.add('hidden');
+  document.body.classList.remove('login-required');
   const pw=document.getElementById('apiLoginPw');
   if(pw) pw.value='';
   const nameEl=document.getElementById('apiLoginName');
@@ -1517,6 +1524,12 @@ function doApiLogout(){
   clearApiToken();
   toast('Logged out from cloud');
 }
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    const ov=document.getElementById('loginOverlay');
+    if(ov&&!ov.classList.contains('hidden')){ e.preventDefault(); e.stopPropagation(); }
+  }
+});
 function getStatePayload(){
   return {
     rosterTabs:rosterTabs.map(t=>({
@@ -1533,6 +1546,24 @@ function getStatePayload(){
     storeHours,
     storeSettings,
     shopList,
+    ts:Date.now(),
+    version:2,
+    source:'Roster Pro'
+  };
+}
+function getEmptyStatePayload(){
+  return {
+    rosterTabs:[{id:1,name:'Roster 1',nid:1,entityId:null,staff:[]}],
+    activeRosterTab:1,
+    rosterTabNextId:2,
+    activeEntityId:null,
+    shifts:[],
+    weekOffset:0,
+    calCollapsed:false,
+    calNotes:{},
+    storeHours:typeof storeHours!=='undefined'?storeHours:{open:'07:00',close:'23:00',days:{}},
+    storeSettings:typeof storeSettings!=='undefined'?storeSettings:{},
+    shopList:[],
     ts:Date.now(),
     version:2,
     source:'Roster Pro'
@@ -6145,11 +6176,20 @@ function permanentlyRemoveStaff(id){
   if(!pop.classList.contains('hidden'))openRestoreStaff();
 }
 
-function resetEverything(){
+async function resetEverything(){
   if(!confirm('This will delete ALL rosters, staff, and settings. This cannot be undone.\n\nAre you sure?'))return;
   if(!confirm('Really? All data will be permanently lost.'))return;
   localStorage.removeItem(SAVE_KEY);
   localStorage.removeItem(DASH_PREF_KEY);
+  if(typeof CLOUD_SNAPSHOT_KEY!=='undefined')localStorage.removeItem(CLOUD_SNAPSHOT_KEY);
+  const token=typeof getApiToken==='function'?getApiToken():'';
+  if(token&&token!=='no-auth'){
+    try{
+      const empty=getEmptyStatePayload();
+      const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(empty)});
+      if(!res.ok)console.warn('Reset: could not clear cloud state',res.status);
+    }catch(e){console.warn('Reset: cloud sync failed',e);}
+  }
   location.reload();
 }
 
@@ -7262,9 +7302,9 @@ init();
 </script>
 <div class="ai-lock hidden" id="aiLock"><div class="ai-lock-spinner"></div><div class="ai-lock-text">AI is working...</div><div class="ai-lock-sub">Analysing and applying changes</div></div>
 <div class="auth-overlay hidden" id="authOverlay"></div>
-<div class="auth-overlay hidden" id="loginOverlay">
-  <div class="auth-box">
-    <h2 style="margin:0 0 16px;font-size:1.25rem">Cloud login</h2>
+<div class="auth-overlay hidden" id="loginOverlay" onclick="event.target===this&&event.preventDefault()" role="dialog" aria-modal="true" aria-labelledby="loginOverlayTitle">
+  <div class="auth-box" onclick="event.stopPropagation()">
+    <h2 id="loginOverlayTitle" style="margin:0 0 16px;font-size:1.25rem">Cloud login</h2>
     <p id="loginOverlayMsg" style="margin:0 0 12px;color:var(--s400);font-size:0.9rem">Enter the app password to sync with the cloud.</p>
     <div class="auth-field"><label>Your name (for sync)</label><input type="text" id="apiLoginName" placeholder="e.g. Alice" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('apiLoginPw').focus()"></div>
     <div class="auth-field"><label>Password</label><input type="password" id="apiLoginPw" placeholder="Password" onkeydown="if(event.key==='Enter')doApiLogin()"></div>
