@@ -74,6 +74,33 @@ function validateStatePayload(data) {
   return null;
 }
 
+function summarizeState(data) {
+  if (!data || !Array.isArray(data.rosterTabs)) {
+    return { rosterCount: 0, staffCount: 0, shiftCount: 0 };
+  }
+
+  let staffCount = 0;
+  let shiftCount = 0;
+
+  for (const tab of data.rosterTabs) {
+    const members = Array.isArray(tab?.staff) ? tab.staff : [];
+    staffCount += members.length;
+
+    for (const member of members) {
+      const weekShifts = member?.weekShifts && typeof member.weekShifts === 'object'
+        ? member.weekShifts
+        : {};
+      for (const shifts of Object.values(weekShifts)) {
+        if (Array.isArray(shifts)) {
+          shiftCount += shifts.filter((s) => s && typeof s === 'object' && (s.start || s.end || s.type)).length;
+        }
+      }
+    }
+  }
+
+  return { rosterCount: data.rosterTabs.length, staffCount, shiftCount };
+}
+
 function readState() {
   if (!fs.existsSync(STATE_FILE)) return null;
   const raw = fs.readFileSync(STATE_FILE, 'utf8');
@@ -194,6 +221,23 @@ app.put('/api/state', requireAuth, (req, res) => {
     if (req.authUser) {
       data.lastModifiedBy = req.authUser;
       data.lastModifiedAt = Date.now();
+    }
+
+    // Guard against accidental wipes when a stale/new device pushes an empty dataset.
+    const currentState = readState();
+    const currentSummary = summarizeState(currentState);
+    const incomingSummary = summarizeState(data);
+    const isIncomingPossiblyEmpty = incomingSummary.staffCount === 0 && incomingSummary.shiftCount === 0;
+    const hasExistingData = currentSummary.staffCount > 0 || currentSummary.shiftCount > 0;
+    const forceOverwrite = String(req.headers['x-force-overwrite'] || '').toLowerCase() === 'true';
+
+    if (hasExistingData && isIncomingPossiblyEmpty && !forceOverwrite) {
+      return res.status(409).json({
+        error: 'Refusing to overwrite non-empty cloud state with an empty payload',
+        code: 'destructive_write_blocked',
+        currentSummary,
+        incomingSummary,
+      });
     }
 
     writeStateAtomic(data);

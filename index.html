@@ -1763,6 +1763,13 @@ async function _doSave(){
         setSaveStatus('idle','Saved locally (login required for cloud)',fmtSaveTime(data.ts));
         return;
       }
+      if(res.status===409){
+        const details=await res.json().catch(()=>({}));
+        localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+        setSaveStatus('error','Cloud save blocked','Prevented overwrite of existing cloud data');
+        toast((details&&details.error)||'Cloud data protected: reload to sync latest copy');
+        return;
+      }
     }catch(remoteErr){
       console.warn('Remote save failed:',remoteErr);
     }
