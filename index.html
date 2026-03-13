@@ -2403,18 +2403,52 @@ function doBulk(){
   pushUndo("Bulk add staff");const ns=el('bulkNames').value.split('\n').map(n=>n.trim()).filter(Boolean);const rate=parseFloat(el('bulkRate').value)||0;ns.forEach(nm=>{const _ns={id:nid++,name:nm,rate,cashRate:0,maxHours:0,salary:0,payType:'hourly',badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds:[],daysOff:[]},shifts:ew(),weekShifts:{}};_ns.weekShifts[weekKey()]=_ns.shifts;staff.push(_ns)});el('bulkNames').value='';hideBulk();renderAll()}
 function rmStaff(id,expectedName=''){
   pushUndo("Remove staff");
+  const wk=weekKey();
   const normalizedExpected=String(expectedName||'').trim().toLowerCase();
   const byId=staff.filter(x=>x.id===id);
+  console.debug('[Roster Debug] Remove staff clicked',{
+    requestedId:id,
+    expectedName,
+    normalizedExpected,
+    week:wk,
+    matchesById:byId.map(x=>({
+      id:x.id,
+      name:x.name,
+      alreadyRemoved:Boolean(x.leftOn),
+      leftOn:x.leftOn||null
+    }))
+  });
   let s=null;
   if(normalizedExpected){
     s=byId.find(x=>x.name.trim().toLowerCase()===normalizedExpected)||null;
   }
   if(!s)s=byId.find(x=>!x.leftOn)||byId[0]||null;
-  if(!s)return;
+  if(!s){
+    console.debug('[Roster Debug] Remove staff aborted: no matching staff found',{
+      requestedId:id,
+      expectedName,
+      activeStaffCount:staff.filter(x=>!x.leftOn).length
+    });
+    return;
+  }
+  if(s.leftOn&&s.leftOn<=wk){
+    console.debug('[Roster Debug] Remove staff skipped: staff already removed for this week or earlier',{
+      staffId:s.id,
+      name:s.name,
+      leftOn:s.leftOn,
+      currentWeek:wk
+    });
+  }
   // Soft-delete: mark with leftOn week key so past weeks retain data
-  s.leftOn=weekKey();
+  s.leftOn=wk;
   // Clear shifts from current week onward
   s.shifts.forEach((_,i)=>{s.shifts[i]={start:'',end:'',type:''}});
+  console.debug('[Roster Debug] Remove staff applied',{
+    staffId:s.id,
+    name:s.name,
+    leftOn:s.leftOn,
+    clearedShiftSlots:s.shifts.length
+  });
   renderAll();
   toast(s.name+' removed (kept in past weeks)');
 }
@@ -2818,8 +2852,9 @@ function manuallyLink(tabId1,sid1,tabId2,sid2){
   unique.forEach(s=>s.linkedId=lid);
   syncLinkedStaff(s1);
   saveState();
+  renderStaffTab();
+  if(typeof renderAll==='function')renderAll();
   toast(`${s1.name} linked across rosters ✓`);
-  requestAnimationFrame(()=>{ renderStaffTab(); if(typeof renderAll==='function') renderAll(); });
 }
 
 // Unlink — identified by [tabId, staffId]
@@ -2833,6 +2868,7 @@ function unlinkStaff(tabId,staffId){
     if(remaining.length===1)remaining[0].linkedId=null;
   }
   saveState();
+  if(typeof renderAll==='function')renderAll();
   toast(`${s.name} unlinked`);
   renderStaffTab();
 }
@@ -3094,7 +3130,7 @@ function openManualLinkPopup(tabId,staffId){
   byRoster.forEach(({tab,people})=>{
     h+=`<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--s400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px"><i data-lucide="layout-grid" style="width:10px;height:10px;vertical-align:middle"></i> ${esc(tab.name)}</div>`;
     people.forEach(({s:x,alreadyLinked})=>{
-      h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;gap:8px;text-align:left;width:100%;margin-bottom:2px;${alreadyLinked?'opacity:.5;pointer-events:none':''}" onclick="manuallyLink(${tabId},${staffId},${tab.id},${x.id});closePop();renderStaffTab();renderAll();toast('Linked across rosters');">
+      h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;gap:8px;text-align:left;width:100%;margin-bottom:2px;${alreadyLinked?'opacity:.5;pointer-events:none':''}" onclick="manuallyLink(${tabId},${staffId},${tab.id},${x.id});closePop();">
         <i data-lucide="user" style="width:12px;height:12px;flex-shrink:0"></i>
         <span style="font-weight:600">${esc(x.name)}</span>
         ${alreadyLinked?'<span style="font-size:9px;color:#059669">linked</span>':''}
@@ -3121,7 +3157,7 @@ function confirmUnlinkStaff(tabId,staffId){
   h+=`<div style="display:flex;flex-direction:column;gap:4px">`;
   rosterEntries.forEach(({tab,staff:copy})=>{
     const isCurrent=tab.id===currentTab.id;
-    h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;text-align:left" onclick="unlinkStaff(${tab.id},${copy.id});closePop();renderStaffTab();renderAll();toast('Unlinked');"><i data-lucide="layout-grid" style="width:14px;height:14px"></i> ${esc(tab.name)}${isCurrent?' <span style="font-size:9px;color:var(--s400)">(current)</span>':''}</button>`;
+    h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;text-align:left" onclick="unlinkStaff(${tab.id},${copy.id});closePop();"><i data-lucide="layout-grid" style="width:14px;height:14px"></i> ${esc(tab.name)}${isCurrent?' <span style="font-size:9px;color:var(--s400)">(current)</span>':''}</button>`;
   });
   h+=`</div><button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="closePop()">Cancel</button></div>`;
   el('popOver').innerHTML=h;el('popOver').classList.remove('hidden');lucide.createIcons();
