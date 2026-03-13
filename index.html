@@ -880,11 +880,16 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .mob-sync-dot.error{background:#f87171}
 .mob-gear{width:48px;height:48px;min-width:48px;min-height:48px;border-radius:12px;background:rgba(255,255,255,.2);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mob-gear svg{width:22px;height:22px}
+.mob-easy-toggle{min-height:40px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.32);background:rgba(255,255,255,.18);color:#fff;font-size:11px;font-weight:700;font-family:inherit;display:none;align-items:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mob-easy-toggle svg{width:15px;height:15px}
+.mob-easy-toggle.is-unlocked{background:rgba(134,239,172,.22);border-color:rgba(134,239,172,.45)}
 .mob-stores-bar{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:10px 16px;padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));background:linear-gradient(135deg,var(--purple-50),var(--pink-50));border-bottom:1px solid var(--s100)}
 .mob-stores-label{font-size:11px;font-weight:700;color:var(--purple-600);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;display:inline-flex;align-items:center;gap:4px}
 .mob-stores-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .mob-stores-list::-webkit-scrollbar{display:none}
 .mob-stores-list .store-chip{flex-shrink:0}
+.mob-store-add{flex-shrink:0;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--purple-200);background:var(--white);color:var(--purple-600);font-size:12px;font-weight:700;font-family:inherit;display:inline-flex;align-items:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mob-store-add svg{width:14px;height:14px}
 .mob-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 16px;padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));padding-bottom:calc(12px + env(safe-area-inset-bottom,0))}
 .mob-tabs{flex-shrink:0;display:flex;background:var(--white);border-top:1px solid var(--s200);padding-bottom:env(safe-area-inset-bottom,0);padding-top:8px;box-shadow:0 -2px 12px rgba(0,0,0,.06)}
 .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;min-height:56px;min-width:48px;border:none;background:none;color:var(--s400);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:color .15s,background .15s;-webkit-tap-highlight-color:transparent}
@@ -929,6 +934,10 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .mob-pay-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--white);border-radius:14px;border:1px solid var(--s100);min-height:56px;-webkit-tap-highlight-color:transparent}
 .mob-pay-row .name{font-size:14px;font-weight:600;color:var(--s800)}
 .mob-pay-row .amt{font-size:14px;font-weight:700;color:var(--s700)}
+
+@media (max-width:768px) and (orientation:portrait){
+  body.easy-mode .mob-easy-toggle{display:inline-flex}
+}
 
 @media print{
   .print-roster-card-style .roster-id-name,
@@ -1395,6 +1404,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
       </div>
     </div>
     <div class="mob-header-right">
+      <button type="button" class="mob-easy-toggle" id="mobEasyToggle" onclick="toggleEasyMode()" aria-label="Unlock full mode"><i data-lucide="lock"></i><span id="mobEasyLabel">Full mode</span></button>
       <span class="mob-sync-dot" id="mobSyncDot" title="Sync status"></span>
       <button type="button" class="mob-gear" id="mobGearBtn" onclick="toggleGearMenu(event)" aria-label="Settings"><i data-lucide="settings"></i></button>
     </div>
@@ -1402,6 +1412,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   <div class="mob-stores-bar" id="mobStoresBar">
     <span class="mob-stores-label"><i data-lucide="building-2"></i> Store</span>
     <div class="mob-stores-list" id="mobStoresBarList"></div>
+    <button type="button" class="mob-store-add" onclick="openShopListPopup()" aria-label="Add store"><i data-lucide="plus"></i><span>Add</span></button>
   </div>
   <main class="mob-content" id="mobContent"></main>
   <nav class="mob-tabs">
@@ -6861,6 +6872,7 @@ function applyEasyMode(on){
   const lbl=el('easyLabel');
   if(btn)btn.classList.toggle('on',!on);
   if(lbl)lbl.textContent=on?'Unlock Full Mode':'Lock (Easy Mode)';
+  updateMobileEasyToggle();
   if(on){
     showTab('roster');
     // Apply configurable hides
@@ -6872,6 +6884,19 @@ function applyEasyMode(on){
   }else{
     document.body.classList.remove('em-hide-rates','em-hide-hours','em-hide-hybrid','em-hide-tabs');
   }
+}
+
+function updateMobileEasyToggle(){
+  const btn=el('mobEasyToggle');
+  const lbl=el('mobEasyLabel');
+  if(!btn||!lbl)return;
+  const locked=document.body.classList.contains('easy-mode');
+  lbl.textContent=locked?'Full mode':'Easy mode';
+  btn.classList.toggle('is-unlocked',!locked);
+  btn.setAttribute('aria-label',locked?'Unlock full mode':'Return to easy mode');
+  const icon=btn.querySelector('i');
+  if(icon)icon.setAttribute('data-lucide',locked?'lock':'unlock');
+  if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
 }
 
 function openEasyModeConfig(){
@@ -7291,6 +7316,7 @@ function checkViewport(){
     document.getElementById('mobileShell').style.display='flex';
     setMobTab(mobileTab);
     updateMobSyncDot();
+    updateMobileEasyToggle();
   }else{
     document.querySelector('.desktop-wrap').style.display='block';
     document.getElementById('mobileShell').style.display='none';
@@ -8009,6 +8035,7 @@ STRICT RULES:
     const btn = document.getElementById('easyBtn');
     if(lbl) lbl.textContent = bodyLocked ? 'Unlock Full Mode' : 'Lock (Easy Mode)';
     if(btn) btn.classList.toggle('on', !bodyLocked);
+    if(typeof W.updateMobileEasyToggle==='function')W.updateMobileEasyToggle();
   }
   W.syncEasyModeUI = syncEasyModeUI;
 
