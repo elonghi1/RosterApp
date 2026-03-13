@@ -4568,19 +4568,38 @@ function saveApiKey(){try{localStorage.setItem('anthropic_api_key',getApiKey())}
 function loadApiKey(){try{const k=localStorage.getItem('anthropic_api_key');if(k)document.getElementById('apiKeyInput').value=k}catch(e){}}
 function toggleKeyVis(){const inp=document.getElementById('apiKeyInput');inp.type=inp.type==='password'?'text':'password'}
 // Model selection: try preferred models first, then fall back automatically if a model is unavailable.
-const CLAUDE_AI_MODEL_CHAT='claude-3-7-sonnet-latest';
-const CLAUDE_AI_MODEL_FAST='claude-3-5-sonnet-latest';
-const CLAUDE_MODEL_FALLBACKS_CHAT=[CLAUDE_AI_MODEL_CHAT,'claude-3-5-sonnet-latest','claude-3-5-haiku-latest'];
-const CLAUDE_MODEL_FALLBACKS_FAST=[CLAUDE_AI_MODEL_FAST,'claude-3-5-haiku-latest','claude-3-haiku-20240307'];
+const CLAUDE_AI_MODEL_CHAT='claude-sonnet-4-20250514';
+const CLAUDE_AI_MODEL_FAST='claude-3-7-sonnet-latest';
+const CLAUDE_MODEL_FALLBACKS_CHAT=[
+  CLAUDE_AI_MODEL_CHAT,
+  'claude-3-7-sonnet-latest',
+  'claude-3-5-sonnet-latest',
+  'claude-3-5-haiku-latest',
+  'claude-3-haiku-20240307'
+];
+const CLAUDE_MODEL_FALLBACKS_FAST=[
+  CLAUDE_AI_MODEL_FAST,
+  'claude-3-5-sonnet-latest',
+  'claude-3-5-haiku-latest',
+  'claude-3-haiku-20240307'
+];
+const ANTHROPIC_REQUEST_TIMEOUT_MS=45000;
 function getClaudeModelCandidates(useThinking){
   const list=useThinking?CLAUDE_MODEL_FALLBACKS_CHAT:CLAUDE_MODEL_FALLBACKS_FAST;
   return [...new Set(list.filter(Boolean))];
 }
-function isModelError(message){return /\bmodel\b/i.test(message||'')}
-function isThinkingError(message){return /\bthinking\b/i.test(message||'')}
+function isModelError(message){return /\bmodel\b|not.*available|unknown.*model/i.test(message||'')}
+function isThinkingError(message){return /\bthinking\b|budget_tokens/i.test(message||'')}
+function isTransientAnthropicError(message){
+  return /overloaded|timeout|temporar|rate\s*limit|try again|unavailable/i.test(message||'');
+}
 async function callAnthropicWithFallback({apiKey,system,messages,maxTokens,useThinking}){
+  if(!apiKey){
+    throw new Error('Missing API key. Paste your Anthropic API key in AI settings first.');
+  }
   const headers={'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'};
-  if(apiKey){headers['x-api-key']=apiKey;headers['anthropic-version']='2023-06-01'}
+  headers['x-api-key']=apiKey;
+  headers['anthropic-version']='2023-06-01';
 
   const candidates=getClaudeModelCandidates(useThinking);
   const tried=[];
@@ -4592,8 +4611,29 @@ async function callAnthropicWithFallback({apiKey,system,messages,maxTokens,useTh
       const useThinkingThisTry=thinkingEnabled&&pass===0;
       const body={model,max_tokens:maxTokens,system,messages};
       if(useThinkingThisTry) body.thinking={type:'enabled',budget_tokens:10000};
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
-      const data=await resp.json().catch(()=>({}));
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),ANTHROPIC_REQUEST_TIMEOUT_MS);
+      let resp;
+      try{
+        resp=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',headers,body:JSON.stringify(body),signal:controller.signal
+        });
+      }catch(fetchErr){
+        clearTimeout(timeout);
+        const msg=fetchErr?.name==='AbortError'
+          ? `Request timed out after ${Math.round(ANTHROPIC_REQUEST_TIMEOUT_MS/1000)}s`
+          : (fetchErr?.message||'Network request failed');
+        tried.push({model,thinking:useThinkingThisTry,error:msg,status:0});
+        lastError=msg;
+        break;
+      }
+      clearTimeout(timeout);
+
+      const raw=await resp.text();
+      let data={};
+      if(raw){
+        try{data=JSON.parse(raw)}catch(_e){data={raw}}
+      }
       if(resp.ok){
         return {data,modelUsed:model,thinkingUsed:useThinkingThisTry,tried};
       }
@@ -4606,6 +4646,9 @@ async function callAnthropicWithFallback({apiKey,system,messages,maxTokens,useTh
       }
       if(isThinkingError(errMsg)&&useThinkingThisTry){
         continue;
+      }
+      if(resp.status===429||resp.status===500||resp.status===502||resp.status===503||resp.status===504||resp.status===529||isTransientAnthropicError(errMsg)){
+        break;
       }
       if(!isModelError(errMsg)){
         throw new Error(errMsg);
@@ -5359,11 +5402,38 @@ window.preflightAIActionPlan = preflightAIActionPlan;
 
 async function applyAIActions(text){
   const applied=[];
-  const jsonMatch=text.match(/```json\s*(\{[\s\S]*?\})\s*```/);
-  if(!jsonMatch)return applied;
+
+  function extractActionJson(raw){
+    if(!raw||typeof raw!=='string')return null;
+    const fence=raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/i);
+    if(fence&&fence[1])return fence[1];
+
+    const trimmed=raw.trim();
+    if(trimmed.startsWith('{')&&trimmed.endsWith('}'))return trimmed;
+
+    const actionIdx=raw.search(/"actions"\s*:/i);
+    if(actionIdx>=0){
+      const start=raw.lastIndexOf('{',actionIdx);
+      const end=raw.indexOf('}',actionIdx);
+      if(start>=0&&end>start){
+        let depth=0;
+        for(let i=start;i<raw.length;i++){
+          if(raw[i]==='{')depth++;
+          if(raw[i]==='}'){
+            depth--;
+            if(depth===0)return raw.slice(start,i+1);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  const payload=extractActionJson(text);
+  if(!payload)return applied;
   
   try{
-    const cmd=JSON.parse(jsonMatch[1]);
+    const cmd=JSON.parse(payload);
     if(!cmd.actions||!Array.isArray(cmd.actions))return applied;
 
     const preflight = preflightAIActionPlan(cmd.actions);
