@@ -871,16 +871,6 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 @media(max-width:768px) and (orientation:portrait){
   body.mobile-full-portrait .desktop-wrap{display:block!important}
   body.mobile-full-portrait .mobile-shell{display:none!important}
-  body.mobile-full-portrait .wrap{max-width:100%;padding:10px 12px 88px}
-  body.mobile-full-portrait .stores-bar{padding:8px 12px}
-  body.mobile-full-portrait .stores-bar-inner{max-width:100%;padding:0;align-items:flex-start}
-  body.mobile-full-portrait .stores-bar-list{flex:1 0 100%;order:3}
-  body.mobile-full-portrait .stores-bar-list .store-chip{min-width:0;min-height:40px;padding:8px 12px}
-  body.mobile-full-portrait .stores-bar-actions{order:2}
-  body.mobile-full-portrait .stores-bar-list .store-chip.empty{white-space:normal;line-height:1.25;max-width:100%}
-  body.mobile-full-portrait .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  body.mobile-full-portrait .tab{flex:0 0 auto;min-width:98px;white-space:nowrap}
-  body.mobile-full-portrait .rtab-name{max-width:132px}
 }
 .mob-header{flex-shrink:0;background:linear-gradient(135deg,#9333ea 0%,#db2777 50%);padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0));padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px}
 .mob-header-left{display:flex;align-items:center;gap:10px;min-width:0}
@@ -911,6 +901,20 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;min-height:56px;min-width:48px;border:none;background:none;color:var(--s400);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:color .15s,background .15s;-webkit-tap-highlight-color:transparent}
 .mob-tab:hover{background:var(--s50)}
 .mob-tab.active{color:var(--pink-600);background:var(--pink-50)}
+
+/* Merge-safe portrait overrides for full desktop mode on mobile */
+@media(max-width:768px) and (orientation:portrait){
+  body.mobile-full-portrait .wrap{max-width:100%;padding:10px 12px 88px}
+  body.mobile-full-portrait .stores-bar{padding:8px 12px}
+  body.mobile-full-portrait .stores-bar-inner{max-width:100%;padding:0;align-items:flex-start}
+  body.mobile-full-portrait .stores-bar-list{flex:1 0 100%;order:3}
+  body.mobile-full-portrait .stores-bar-list .store-chip{min-width:0;min-height:40px;padding:8px 12px}
+  body.mobile-full-portrait .stores-bar-actions{order:2}
+  body.mobile-full-portrait .stores-bar-list .store-chip.empty{white-space:normal;line-height:1.25;max-width:100%}
+  body.mobile-full-portrait .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  body.mobile-full-portrait .tab{flex:0 0 auto;min-width:98px;white-space:nowrap}
+  body.mobile-full-portrait .rtab-name{max-width:132px}
+}
 .mob-tab svg{width:22px;height:22px}
 .mob-roster-view,.mob-dash-view,.mob-pay-view{display:none}
 .mob-roster-view.active,.mob-dash-view.active,.mob-pay-view.active{display:block}
