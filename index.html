@@ -1542,6 +1542,7 @@ const REMOTE_META_URL=REMOTE_STATE_URL.replace(/\/api\/state$/i, '/api/state/met
 let _saveTimer=null;
 let saveStatus={state:'idle',message:'Saved locally',meta:'Ready for backup',ts:null};
 let lastKnownRemoteUpdatedAt=0;
+let lastKnownRemoteRevision='';
 let remoteSyncPollTimer=null;
 let remoteSyncInFlight=false;
 
@@ -1762,6 +1763,19 @@ function noteRemoteTimestamp(ts){
   if(n>lastKnownRemoteUpdatedAt)lastKnownRemoteUpdatedAt=n;
 }
 
+function noteRemoteRevision(rev){
+  const r=String(rev||'').trim();
+  if(r)lastKnownRemoteRevision=r;
+}
+
+function getExpectedStateRevision(){
+  return String(lastKnownRemoteRevision||'').trim();
+}
+
+function isRevisionConflict(details){
+  return details&&details.code==='state_revision_conflict';
+}
+
 function markDirty(reason='Changes pending'){
   setSaveStatus('dirty','Unsaved changes',reason);
 }
@@ -1778,10 +1792,14 @@ async function _doSave(){
     setSaveStatus('saving','Saving…','Syncing to cloud');
     const data=getStatePayload();
     try{
-      const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(data)});
+      const headers=apiHeaders();
+      const expectedRevision=getExpectedStateRevision();
+      if(expectedRevision)headers['X-State-Revision']=expectedRevision;
+      const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers,body:JSON.stringify(data)});
       if(res.ok){
         const body=await res.json().catch(()=>({}));
         noteRemoteTimestamp(body.lastModifiedAt||body.ts||Date.now());
+        noteRemoteRevision(body.stateRevision);
         setSaveStatus('idle','Saved to cloud',fmtSaveTime(data.ts));
         setLastCloudSnapshot(getCloudSummary());
         return;
@@ -1797,8 +1815,15 @@ async function _doSave(){
       if(res.status===409){
         const details=await res.json().catch(()=>({}));
         localStorage.setItem(SAVE_KEY,JSON.stringify(data));
-        setSaveStatus('error','Cloud save blocked','Prevented overwrite of existing cloud data');
-        toast((details&&details.error)||'Cloud data protected: reload to sync latest copy');
+        if(isRevisionConflict(details)){
+          noteRemoteRevision(details.currentRevision);
+          setSaveStatus('error','Cloud changed on another device','Tap Save now to retry after refresh sync');
+          toast('Someone else saved first. We pulled the latest cloud version to avoid overwriting.');
+          await checkForRemoteUpdates({force:true,showToast:false});
+        }else{
+          setSaveStatus('error','Cloud save blocked','Prevented overwrite of existing cloud data');
+          toast((details&&details.error)||'Cloud data protected: reload to sync latest copy');
+        }
         return;
       }
     }catch(remoteErr){
@@ -1815,7 +1840,7 @@ async function _doSave(){
 function forceSaveNow(){
   clearTimeout(_saveTimer);
   _doSave();
-  toast('Configuration saved locally');
+  toast('Save requested');
 }
 
 function downloadConfig(){
@@ -1844,7 +1869,7 @@ function triggerImportConfig(){
   if(input){input.value='';input.click();}
 }
 
-function applyStatePayload(data,{persist=true}={}){
+function applyStatePayload(data,{persist=true,remoteRevision=''}={}){
   if(!data.rosterTabs||!data.rosterTabs.length)throw new Error('Invalid backup');
   rosterTabs=data.rosterTabs.map(t=>{
     const tab={id:t.id,name:t.name,nid:t.nid||1,entityId:t.entityId||null,staff:[]};
@@ -1888,6 +1913,8 @@ function applyStatePayload(data,{persist=true}={}){
   if(data.shopList)shopList=data.shopList;
   try{ensureStoreSettingsDefaults();}catch(e){}
   syncShiftsToWeek();
+  if(remoteRevision)noteRemoteRevision(remoteRevision);
+  else if(data.stateRevision)noteRemoteRevision(data.stateRevision);
   if(persist)localStorage.setItem(SAVE_KEY,JSON.stringify({...data,ts:Date.now()}));
 }
 
@@ -1988,8 +2015,9 @@ async function loadStateAsync(){
     if(res.ok){
       const data=await res.json();
       if(data&&Array.isArray(data.rosterTabs)&&data.rosterTabs.length>0){
-        applyStatePayload(data,{persist:false});
+        applyStatePayload(data,{persist:false,remoteRevision:data.stateRevision||''});
         noteRemoteTimestamp(data.lastModifiedAt||data.ts||Date.now());
+        noteRemoteRevision(data.stateRevision||'');
         setSaveStatus('idle','Loaded from cloud',fmtSaveTime(data.ts));
         showCloudSyncNotification(data);
         return true;
@@ -2013,9 +2041,9 @@ async function loadStateAsync(){
   return loaded;
 }
 
-async function checkForRemoteUpdates(){
+async function checkForRemoteUpdates({force=false,showToast=true}={}){
   if(remoteSyncInFlight)return;
-  if(saveStatus.state==='dirty'||saveStatus.state==='saving')return;
+  if(!force&&(saveStatus.state==='dirty'||saveStatus.state==='saving'))return;
 
   remoteSyncInFlight=true;
   try{
@@ -2026,12 +2054,18 @@ async function checkForRemoteUpdates(){
     if(!meta)return;
 
     const remoteTs=Number(meta.lastModifiedAt)||Number(meta.updatedAt)||0;
-    if(!remoteTs)return;
-    if(!lastKnownRemoteUpdatedAt){
+    const remoteRevision=String(meta.stateRevision||'').trim();
+    if(!remoteTs&&!remoteRevision)return;
+
+    if(!lastKnownRemoteUpdatedAt&&!lastKnownRemoteRevision){
       noteRemoteTimestamp(remoteTs);
+      noteRemoteRevision(remoteRevision);
       return;
     }
-    if(remoteTs<=lastKnownRemoteUpdatedAt)return;
+
+    const sameTimestamp=remoteTs&&remoteTs<=lastKnownRemoteUpdatedAt;
+    const sameRevision=remoteRevision&&remoteRevision===lastKnownRemoteRevision;
+    if(!force&&(sameTimestamp||sameRevision))return;
 
     const stateRes=await fetch(REMOTE_STATE_URL,{headers:apiHeaders()});
     if(!stateRes.ok)return;
@@ -2039,14 +2073,15 @@ async function checkForRemoteUpdates(){
     const data=await stateRes.json();
     if(!data||!Array.isArray(data.rosterTabs))return;
 
-    applyStatePayload(data,{persist:true});
-    noteRemoteTimestamp(remoteTs);
-    setSaveStatus('idle','Synced latest cloud changes',fmtSaveTime(remoteTs));
+    applyStatePayload(data,{persist:true,remoteRevision:data.stateRevision||remoteRevision});
+    noteRemoteTimestamp(remoteTs||data.lastModifiedAt||Date.now());
+    noteRemoteRevision(data.stateRevision||remoteRevision);
+    setSaveStatus('idle','Synced latest cloud changes',fmtSaveTime(remoteTs||data.lastModifiedAt));
     renderRosterTabs();
     renderAll();
     if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
     if(typeof checkViewport==='function')checkViewport();
-    toast('Updated from cloud');
+    if(showToast)toast('Updated from cloud');
   }catch(e){
     console.warn('Remote sync poll failed:',e);
   }finally{
@@ -6534,7 +6569,9 @@ async function resetEverything(){
   if(token&&token!=='no-auth'){
     try{
       const empty=getEmptyStatePayload();
-      const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(empty)});
+      const headers=apiHeaders();
+      headers['X-Force-Overwrite']='true';
+      const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers,body:JSON.stringify(empty)});
       if(!res.ok)console.warn('Reset: could not clear cloud state',res.status);
     }catch(e){console.warn('Reset: cloud sync failed',e);}
   }
