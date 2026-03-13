@@ -867,6 +867,10 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .desktop-wrap{display:none!important}
   .mobile-shell{display:flex}
 }
+@media(max-width:768px) and (orientation:portrait){
+  body.mobile-full-mode .desktop-wrap{display:block!important}
+  body.mobile-full-mode .mobile-shell{display:none!important}
+}
 .mob-header{flex-shrink:0;background:linear-gradient(135deg,#9333ea 0%,#db2777 50%);padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0));padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px}
 .mob-header-left{display:flex;align-items:center;gap:10px;min-width:0}
 .mob-brand-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);box-shadow:0 8px 24px rgba(76,29,149,.24);backdrop-filter:blur(8px);flex-shrink:0}
@@ -6884,6 +6888,7 @@ function applyEasyMode(on){
   }else{
     document.body.classList.remove('em-hide-rates','em-hide-hours','em-hide-hybrid','em-hide-tabs');
   }
+  if(typeof checkViewport==='function')checkViewport();
 }
 
 function updateMobileEasyToggle(){
@@ -7184,6 +7189,8 @@ function closeAuth(){
 
 // ═══ Mobile interface (from scratch) ═══
 function isMobile(){return typeof window!=='undefined'&&window.innerWidth<=768}
+function isPortrait(){return typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(orientation: portrait)').matches}
+function useMobileShell(){return isMobile()&&!(isPortrait()&&!easyMode)}
 let mobileTab='roster';
 let mobileDayIndex=0;
 
@@ -7311,7 +7318,9 @@ function updateMobSyncDot(){
 }
 
 function checkViewport(){
-  if(isMobile()){
+  const showMobile=useMobileShell();
+  document.body.classList.toggle('mobile-full-mode',isMobile()&&!showMobile);
+  if(showMobile){
     document.querySelector('.desktop-wrap').style.display='none';
     document.getElementById('mobileShell').style.display='flex';
     setMobTab(mobileTab);
