@@ -1521,6 +1521,7 @@ const SAVE_KEY='rosterPro_v1';
 const CLOUD_SNAPSHOT_KEY='rosterPro_cloudSnapshot';
 const API_TOKEN_KEY='rosterPro_apiToken';
 const DEFAULT_REMOTE_STATE_URL='https://rosterapp-production-721b.up.railway.app/api/state';
+const REMOTE_SYNC_POLL_MS=30000;
 function resolveRemoteStateUrl(){
   try{
     const qp=new URLSearchParams(window.location.search||'');
@@ -1536,8 +1537,12 @@ function resolveRemoteStateUrl(){
 }
 const REMOTE_STATE_URL=resolveRemoteStateUrl();
 const REMOTE_LOGIN_URL=REMOTE_STATE_URL.replace(/\/api\/state$/i, '/api/login');
+const REMOTE_META_URL=REMOTE_STATE_URL.replace(/\/api\/state$/i, '/api/state/meta');
 let _saveTimer=null;
 let saveStatus={state:'idle',message:'Saved locally',meta:'Ready for backup',ts:null};
+let lastKnownRemoteUpdatedAt=0;
+let remoteSyncPollTimer=null;
+let remoteSyncInFlight=false;
 
 function getApiToken(){try{return localStorage.getItem(API_TOKEN_KEY)||'';}catch(e){return ''}}
 function setApiToken(t){try{if(t)localStorage.setItem(API_TOKEN_KEY,t);else localStorage.removeItem(API_TOKEN_KEY);}catch(e){}}
@@ -1733,6 +1738,11 @@ function setSaveStatus(state,message,meta){
   if(typeof updateMobSyncDot==='function')updateMobSyncDot();
 }
 
+function noteRemoteTimestamp(ts){
+  const n=Number(ts)||0;
+  if(n>lastKnownRemoteUpdatedAt)lastKnownRemoteUpdatedAt=n;
+}
+
 function markDirty(reason='Changes pending'){
   setSaveStatus('dirty','Unsaved changes',reason);
 }
@@ -1751,6 +1761,8 @@ async function _doSave(){
     try{
       const res=await fetch(REMOTE_STATE_URL,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(data)});
       if(res.ok){
+        const body=await res.json().catch(()=>({}));
+        noteRemoteTimestamp(body.lastModifiedAt||body.ts||Date.now());
         setSaveStatus('idle','Saved to cloud',fmtSaveTime(data.ts));
         setLastCloudSnapshot(getCloudSummary());
         return;
@@ -1958,6 +1970,7 @@ async function loadStateAsync(){
       const data=await res.json();
       if(data&&Array.isArray(data.rosterTabs)&&data.rosterTabs.length>0){
         applyStatePayload(data,{persist:false});
+        noteRemoteTimestamp(data.lastModifiedAt||data.ts||Date.now());
         setSaveStatus('idle','Loaded from cloud',fmtSaveTime(data.ts));
         showCloudSyncNotification(data);
         return true;
@@ -1979,6 +1992,52 @@ async function loadStateAsync(){
   if(loaded) setSaveStatus('idle','Saved locally',fmtSaveTime(null));
   else setSaveStatus('idle','Local mode','Stored in this browser');
   return loaded;
+}
+
+async function checkForRemoteUpdates(){
+  if(remoteSyncInFlight)return;
+  if(saveStatus.state==='dirty'||saveStatus.state==='saving')return;
+
+  remoteSyncInFlight=true;
+  try{
+    const metaRes=await fetch(REMOTE_META_URL,{headers:apiHeaders()});
+    if(!metaRes.ok)return;
+
+    const meta=await metaRes.json().catch(()=>null);
+    if(!meta)return;
+
+    const remoteTs=Number(meta.lastModifiedAt)||Number(meta.updatedAt)||0;
+    if(!remoteTs)return;
+    if(!lastKnownRemoteUpdatedAt){
+      noteRemoteTimestamp(remoteTs);
+      return;
+    }
+    if(remoteTs<=lastKnownRemoteUpdatedAt)return;
+
+    const stateRes=await fetch(REMOTE_STATE_URL,{headers:apiHeaders()});
+    if(!stateRes.ok)return;
+
+    const data=await stateRes.json();
+    if(!data||!Array.isArray(data.rosterTabs))return;
+
+    applyStatePayload(data,{persist:true});
+    noteRemoteTimestamp(remoteTs);
+    setSaveStatus('idle','Synced latest cloud changes',fmtSaveTime(remoteTs));
+    renderRosterTabs();
+    renderAll();
+    if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
+    if(typeof checkViewport==='function')checkViewport();
+    toast('Updated from cloud');
+  }catch(e){
+    console.warn('Remote sync poll failed:',e);
+  }finally{
+    remoteSyncInFlight=false;
+  }
+}
+
+function startRemoteSyncPolling(){
+  if(remoteSyncPollTimer)clearInterval(remoteSyncPollTimer);
+  remoteSyncPollTimer=setInterval(checkForRemoteUpdates,REMOTE_SYNC_POLL_MS);
 }
 
 // Hook saveState into renderAll so every change auto-saves
@@ -7555,6 +7614,7 @@ async function init(){
   lucide.createIcons();
   checkViewport();
   window.addEventListener('resize',checkViewport);
+  startRemoteSyncPolling();
 }
 init();
 </script>
