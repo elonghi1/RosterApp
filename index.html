@@ -6420,13 +6420,27 @@ function renderShiftTypeRows(){
     `;
   }).join('\n');
 }
+function syncShiftTypeDraftFromInputs(){
+  ensureStoreSettingsDefaults();
+  const rows=el('ssShiftRows');
+  if(!rows)return;
+  storeSettings.shiftTypes=storeSettings.shiftTypes.map((st,i)=>({
+    ...st,
+    name:(el('ssName_'+i)?.value||st.name||'').trim()||('Shift '+(i+1)),
+    start:(el('ssStart_'+i)?.value||st.start||'').trim()||'09:00',
+    end:(el('ssEnd_'+i)?.value||st.end||'').trim()||'17:00',
+    minStaff:parseInt(el('ssMin_'+i)?.value) || 0
+  }));
+}
 function addShiftTypeRow(){
   ensureStoreSettingsDefaults();
+  syncShiftTypeDraftFromInputs();
   storeSettings.shiftTypes.push({id:'shift_'+Date.now().toString(36),name:'New shift',start:'09:00',end:'17:00',minStaff:1});
   renderShiftTypeRows();
 }
 function removeShiftTypeRow(i){
   ensureStoreSettingsDefaults();
+  syncShiftTypeDraftFromInputs();
   storeSettings.shiftTypes.splice(i,1);
   if(!storeSettings.shiftTypes.length)resetShiftTypesDefaults();
   renderShiftTypeRows();
