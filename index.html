@@ -866,7 +866,11 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 }
 .mob-header{flex-shrink:0;background:linear-gradient(135deg,#9333ea 0%,#db2777 50%);padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0));padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px}
 .mob-header-left{display:flex;align-items:center;gap:10px;min-width:0}
+.mob-brand-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);box-shadow:0 8px 24px rgba(76,29,149,.24);backdrop-filter:blur(8px);flex-shrink:0}
+.mob-brand-icon svg{width:20px;height:20px;color:#fff}
+.mob-title-wrap{display:flex;flex-direction:column;min-width:0}
 .mob-header-title{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mob-header-sub{font-size:11px;font-weight:600;color:rgba(255,255,255,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mob-header-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .mob-sync-dot{width:10px;height:10px;border-radius:50%;background:#86efac;box-shadow:0 0 0 2px rgba(255,255,255,.3)}
 .mob-sync-dot.saving{background:#fbbf24;animation:pulseLed 1.2s ease-in-out infinite}
@@ -961,6 +965,12 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
     display:none !important;
   }
 .hdr,.tabs,.toolbar,.add-form,.shifts-panel,.paint-bar,.cal-nav,.card-hd,.btn,.toast,.ai-fab,.ai-panel,.rtabs-wrap{display:none!important}.wrap{padding:0}.r-wrap{box-shadow:none;border:none}.r-tbl{min-width:auto}@page{size:landscape;margin:10mm}}
+
+@media(max-width:400px){
+  .mob-brand-icon{width:36px;height:36px}
+  .mob-header-title{font-size:16px}
+  .mob-header-sub{font-size:10px}
+}
 </style>
 </head>
 <body>
@@ -1375,7 +1385,11 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 <div id="mobileShell" class="mobile-shell">
   <header class="mob-header">
     <div class="mob-header-left">
-      <span class="mob-header-title">Roster Pro</span>
+      <span class="mob-brand-icon" aria-hidden="true"><i data-lucide="calendar-days"></i></span>
+      <div class="mob-title-wrap">
+        <span class="mob-header-title">Roster Pro</span>
+        <span class="mob-header-sub">Weekly scheduling</span>
+      </div>
     </div>
     <div class="mob-header-right">
       <span class="mob-sync-dot" id="mobSyncDot" title="Sync status"></span>
