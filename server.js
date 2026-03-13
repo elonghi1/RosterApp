@@ -101,6 +101,11 @@ function summarizeState(data) {
   return { rosterCount: data.rosterTabs.length, staffCount, shiftCount };
 }
 
+function computeStateRevision(data) {
+  const payload = data && typeof data === 'object' ? data : {};
+  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
 function readState() {
   if (!fs.existsSync(STATE_FILE)) return null;
   const raw = fs.readFileSync(STATE_FILE, 'utf8');
@@ -180,7 +185,9 @@ app.get('/api/state', requireAuth, (req, res) => {
     if (!data) {
       return res.status(404).json({ error: 'No state yet' });
     }
-    res.json(data);
+    const revision = computeStateRevision(data);
+    res.set('ETag', `"${revision}"`);
+    res.json({ ...data, stateRevision: revision });
   } catch (err) {
     console.warn('GET /api/state error:', err.message);
     res.status(404).json({ error: 'No state yet' });
@@ -202,6 +209,7 @@ app.get('/api/state/meta', requireAuth, (req, res) => {
       updatedAt: stat.mtimeMs,
       lastModifiedBy: data.lastModifiedBy || null,
       lastModifiedAt: data.lastModifiedAt || null,
+      stateRevision: computeStateRevision(data),
     });
   } catch (err) {
     console.warn('GET /api/state/meta error:', err.message);
@@ -218,14 +226,26 @@ app.put('/api/state', requireAuth, (req, res) => {
       return res.status(400).json({ error: validationError });
     }
 
+    const currentState = readState();
+    const currentSummary = summarizeState(currentState);
+    const currentRevision = currentState ? computeStateRevision(currentState) : null;
+    const expectedRevisionHeader = String(req.headers['x-state-revision'] || '').trim();
+
+    if (currentState && expectedRevisionHeader && currentRevision !== expectedRevisionHeader) {
+      return res.status(409).json({
+        error: 'Cloud state changed since your last sync',
+        code: 'state_revision_conflict',
+        currentSummary,
+        currentRevision,
+      });
+    }
+
     if (req.authUser) {
       data.lastModifiedBy = req.authUser;
       data.lastModifiedAt = Date.now();
     }
 
     // Guard against accidental wipes when a stale/new device pushes an empty dataset.
-    const currentState = readState();
-    const currentSummary = summarizeState(currentState);
     const incomingSummary = summarizeState(data);
     const isIncomingPossiblyEmpty = incomingSummary.staffCount === 0 && incomingSummary.shiftCount === 0;
     const hasExistingData = currentSummary.staffCount > 0 || currentSummary.shiftCount > 0;
@@ -241,7 +261,8 @@ app.put('/api/state', requireAuth, (req, res) => {
     }
 
     writeStateAtomic(data);
-    return res.json({ ok: true, ts: Date.now() });
+    const newRevision = computeStateRevision(data);
+    return res.json({ ok: true, ts: Date.now(), stateRevision: newRevision });
   } catch (err) {
     console.error('PUT /api/state error:', err);
     return res.status(500).json({ error: 'Failed to save state' });

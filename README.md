@@ -15,6 +15,18 @@ State API for Roster Pro.
 When `AUTH_PASSWORD` is set, auth is required for `GET/PUT /api/state`, `GET /api/state/meta`, `GET /api/session`, and `POST /api/logout`.
 
 
+
+### Stale-write protection (multi-device safe saves)
+
+`PUT /api/state` now supports optimistic concurrency to prevent one device from silently overwriting newer cloud changes.
+
+- `GET /api/state` returns `stateRevision` (also set as an `ETag` header).
+- `GET /api/state/meta` returns `stateRevision`.
+- Clients should send `X-State-Revision: <last seen revision>` with `PUT /api/state`.
+- If cloud data changed since that revision, the API returns `409` with code `state_revision_conflict`.
+
+This allows the app to fetch latest cloud data first, then retry save, instead of wiping schedules with stale payloads.
+
 ### Destructive-write protection
 
 `PUT /api/state` now rejects accidental empty overwrites when cloud data already exists.
