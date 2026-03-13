@@ -4501,10 +4501,56 @@ function getApiKey(){return document.getElementById('apiKeyInput').value.trim()}
 function saveApiKey(){try{localStorage.setItem('anthropic_api_key',getApiKey())}catch(e){}}
 function loadApiKey(){try{const k=localStorage.getItem('anthropic_api_key');if(k)document.getElementById('apiKeyInput').value=k}catch(e){}}
 function toggleKeyVis(){const inp=document.getElementById('apiKeyInput');inp.type=inp.type==='password'?'text':'password'}
-// Model selection: use stable "latest" aliases to avoid dated model-ID deprecations.
+// Model selection: try preferred models first, then fall back automatically if a model is unavailable.
 const CLAUDE_AI_MODEL_CHAT='claude-3-7-sonnet-latest';
 const CLAUDE_AI_MODEL_FAST='claude-3-5-sonnet-latest';
-function getClaudeModel(useThinking){return useThinking?CLAUDE_AI_MODEL_CHAT:CLAUDE_AI_MODEL_FAST;}
+const CLAUDE_MODEL_FALLBACKS_CHAT=[CLAUDE_AI_MODEL_CHAT,'claude-3-5-sonnet-latest','claude-3-5-haiku-latest'];
+const CLAUDE_MODEL_FALLBACKS_FAST=[CLAUDE_AI_MODEL_FAST,'claude-3-5-haiku-latest','claude-3-haiku-20240307'];
+function getClaudeModelCandidates(useThinking){
+  const list=useThinking?CLAUDE_MODEL_FALLBACKS_CHAT:CLAUDE_MODEL_FALLBACKS_FAST;
+  return [...new Set(list.filter(Boolean))];
+}
+function isModelError(message){return /\bmodel\b/i.test(message||'')}
+function isThinkingError(message){return /\bthinking\b/i.test(message||'')}
+async function callAnthropicWithFallback({apiKey,system,messages,maxTokens,useThinking}){
+  const headers={'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'};
+  if(apiKey){headers['x-api-key']=apiKey;headers['anthropic-version']='2023-06-01'}
+
+  const candidates=getClaudeModelCandidates(useThinking);
+  const tried=[];
+  let thinkingEnabled=!!useThinking;
+  let lastError='Unknown API error';
+
+  for(const model of candidates){
+    for(let pass=0;pass<(thinkingEnabled?2:1);pass++){
+      const useThinkingThisTry=thinkingEnabled&&pass===0;
+      const body={model,max_tokens:maxTokens,system,messages};
+      if(useThinkingThisTry) body.thinking={type:'enabled',budget_tokens:10000};
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
+      const data=await resp.json().catch(()=>({}));
+      if(resp.ok){
+        return {data,modelUsed:model,thinkingUsed:useThinkingThisTry,tried};
+      }
+      const errMsg=data?.error?.message||`API error (${resp.status})`;
+      tried.push({model,thinking:useThinkingThisTry,error:errMsg,status:resp.status});
+      lastError=errMsg;
+
+      if(resp.status===401||resp.status===403){
+        throw new Error(errMsg);
+      }
+      if(isThinkingError(errMsg)&&useThinkingThisTry){
+        continue;
+      }
+      if(!isModelError(errMsg)){
+        throw new Error(errMsg);
+      }
+      break;
+    }
+  }
+
+  const triedList=tried.map(t=>`${t.model}${t.thinking?' (thinking)':''}`).join(', ');
+  throw new Error(`${lastError}. Tried models: ${triedList||'none'}`);
+}
 function toggleAIChat(){
   const panel=el('aiPanel'),fab=el('aiFab');
   panel.classList.toggle('hidden');
@@ -5067,25 +5113,22 @@ When reading a photo of a printed roster:
       }
     }
     
-    const headers={'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'};
-    if(apiKey){headers['x-api-key']=apiKey;headers['anthropic-version']='2023-06-01'}
-    
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:headers,
-      body:JSON.stringify({
-        model:getClaudeModel(true),
-        max_tokens:16000,
-        thinking:{type:'enabled',budget_tokens:10000},
+    let data;
+    try{
+      const result=await callAnthropicWithFallback({
+        apiKey,
         system:finalSystem,
-        messages:messages
-      })
-    });
-    
-    const data=await resp.json();
-    if(!resp.ok){
-      const errMsg=data.error?.message||`API error (${resp.status})`;
-      aiHistory.push({role:'assistant',content:`Error: ${errMsg}${resp.status===401?' — check your API key above.':''}`});
+        messages,
+        maxTokens:16000,
+        useThinking:true
+      });
+      data=result.data;
+      if(result.modelUsed!==CLAUDE_AI_MODEL_CHAT){
+        aiHistory.push({role:'assistant',content:`ℹ️ Primary AI model unavailable, switched to ${result.modelUsed} automatically.`});
+      }
+    }catch(err){
+      const errMsg=err?.message||'Unknown API error';
+      aiHistory.push({role:'assistant',content:`Error: ${errMsg}${/401|403/.test(errMsg)?' — check your API key above.':''}`});
       showTyping(false);renderAIChat();return;
     }
     const contentBlocks=data.content||[];
@@ -6885,19 +6928,14 @@ STRICT RULES:
 - If a day is already adequately covered, you may leave it unchanged
 - If no useful changes are needed, return {"actions":[]}
 `;
-        const headers={'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true','x-api-key':apiKey,'anthropic-version':'2023-06-01'};
-        const resp=await fetch('https://api.anthropic.com/v1/messages',{
-          method:'POST',
-          headers,
-          body:JSON.stringify({
-            model:getClaudeModel(false),
-            max_tokens:12000,
-            system:systemPrompt,
-            messages:[{role:'user',content:'Auto-generate the current week now.'}]
-          })
+        const result=await callAnthropicWithFallback({
+          apiKey,
+          system:systemPrompt,
+          messages:[{role:'user',content:'Auto-generate the current week now.'}],
+          maxTokens:12000,
+          useThinking:false
         });
-        const data=await resp.json();
-        if(!resp.ok) throw new Error(data.error?.message||`API error (${resp.status})`);
+        const data=result.data;
         const aiText=(data.content||[]).map(c=>c.text||'').join('\n');
         const applied=await applyAIActions(aiText);
         if(applied?.length){
@@ -8152,19 +8190,14 @@ STRICT RULES:
 - If a day is already adequately covered, you may leave it unchanged
 - If no useful changes are needed, return {"actions":[]}
 `;
-          const headers={'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true','x-api-key':apiKey,'anthropic-version':'2023-06-01'};
-          const resp=await fetch('https://api.anthropic.com/v1/messages',{
-            method:'POST',
-            headers,
-            body:JSON.stringify({
-              model:getClaudeModel(false),
-              max_tokens:12000,
-              system:systemPrompt,
-              messages:[{role:'user',content:'Auto-generate the current week now.'}]
-            })
+          const result=await callAnthropicWithFallback({
+            apiKey,
+            system:systemPrompt,
+            messages:[{role:'user',content:'Auto-generate the current week now.'}],
+            maxTokens:12000,
+            useThinking:false
           });
-          const data=await resp.json();
-          if(!resp.ok) throw new Error(data.error?.message||`API error (${resp.status})`);
+          const data=result.data;
           const text=(data.content||[]).map(c=>c.text||'').join('\n');
           const applied=await W.applyAIActions?.(text);
           if(applied?.length){
