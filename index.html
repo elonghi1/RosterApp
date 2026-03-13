@@ -3190,11 +3190,38 @@ function copyStaffToRoster(staffId,targetTabId){
   const target=rosterTabs.find(t=>t.id===targetTabId);
   if(!s||!target)return;
   pushUndo('Copy staff to roster');
-  const newId=(target.nid=((target.nid||1)+1));
-  const copy={id:newId,name:s.name,rate:s.rate,cashRate:s.cashRate||0,maxHours:s.maxHours||0,salary:s.salary||0,payType:s.payType||'hourly',badge:s.badge||'',scheduleType:s.scheduleType||'variable',fixedDaysOff:[...(s.fixedDaysOff||[])],fixedShift:s.fixedShift||null,priority:s.priority||0,payrollStore:s.payrollStore||'',preferences:{shiftTypeIds:[...(s.preferences?.shiftTypeIds||[])],daysOff:[...(s.preferences?.daysOff||[])]},shifts:ew(),weekShifts:{}};
-  target.staff.push(copy);
+  if(!Array.isArray(target.staff))target.staff=[];
+  target.staff.push(buildCopiedStaffMember(s,target));
   saveState();closePop();toast(`${s.name} copied to ${target.name}`);
 }
+
+function buildCopiedStaffMember(s,target){
+  const newId=(target.nid=((target.nid||1)+1));
+  const wk=weekKey();
+  const blankWeek=ew();
+  return {
+    id:newId,
+    name:s.name,
+    rate:s.rate,
+    cashRate:s.cashRate||0,
+    maxHours:s.maxHours||0,
+    salary:s.salary||0,
+    payType:s.payType||'hourly',
+    badge:s.badge||'',
+    scheduleType:s.scheduleType||'variable',
+    fixedDaysOff:[...(s.fixedDaysOff||[])],
+    fixedShift:s.fixedShift||null,
+    priority:s.priority||0,
+    payrollStore:s.payrollStore||'',
+    preferences:{
+      shiftTypeIds:[...(s.preferences?.shiftTypeIds||[])],
+      daysOff:[...(s.preferences?.daysOff||[])]
+    },
+    shifts:[...blankWeek],
+    weekShifts:{[wk]:blankWeek.map(sh=>({...sh}))}
+  };
+}
+
 function openCopyAllStaffPopup(){
   const otherTabs=rosterTabs.filter(t=>t.id!==activeRosterTab);
   if(!otherTabs.length){el('popOver').innerHTML=`<div class="pop-box" onclick="event.stopPropagation()" style="width:340px"><div class="pop-title"><i data-lucide="copy-plus"></i> Copy All Staff</div><div style="font-size:13px;color:var(--s500);text-align:center;padding:16px">No other rosters to copy to. Add another roster tab first.</div><button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="closePop()">Close</button></div>`;el('popOver').classList.remove('hidden');lucide.createIcons();return;}
@@ -3214,16 +3241,17 @@ function openCopyAllStaffPopup(){
 function copyAllStaffToRoster(targetTabId){
   const target=rosterTabs.find(t=>t.id===targetTabId);
   if(!target)return;
+  if(!Array.isArray(target.staff))target.staff=[];
   pushUndo('Copy all staff to roster');
   const vs=activeStaff();
   let copied=0,skipped=0;
   vs.forEach(s=>{
     if(target.staff.some(x=>x.name.trim().toLowerCase()===s.name.trim().toLowerCase())){skipped++;return;}
-    const newId=((target.nid=((target.nid||1)+1)));
-    target.staff.push({id:newId,name:s.name,rate:s.rate,cashRate:s.cashRate||0,maxHours:s.maxHours||0,salary:s.salary||0,payType:s.payType||'hourly',badge:s.badge||'',scheduleType:s.scheduleType||'variable',fixedDaysOff:[...(s.fixedDaysOff||[])],fixedShift:s.fixedShift||null,priority:s.priority||0,payrollStore:s.payrollStore||'',preferences:{shiftTypeIds:[...(s.preferences?.shiftTypeIds||[])],daysOff:[...(s.preferences?.daysOff||[])]},shifts:ew(),weekShifts:{}});
+    target.staff.push(buildCopiedStaffMember(s,target));
     copied++;
   });
-  saveState();closePop();toast(`Copied ${copied} staff to ${target.name}${skipped?` (${skipped} skipped)`:''}`);}
+  saveState();closePop();renderStaffTab();renderAll();toast(`Copied ${copied} staff to ${target.name}${skipped?` (${skipped} skipped)`:''}`);
+}
 
 function renderAll(){
   const dates=getWD(),label=`${fd(dates[0])} — ${fd(dates[6])}`;
