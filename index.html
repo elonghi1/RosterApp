@@ -918,6 +918,11 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .mob-day-pill.sel .dow,.mob-day-pill.sel .day{color:#fff}
 .mob-day-pill.hol{border-color:var(--amber-400);background:var(--amber-50)}
 .mob-staff-list{display:flex;flex-direction:column;gap:8px}
+.mob-staff-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px}
+.mob-staff-title{font-size:12px;font-weight:700;color:var(--s500);text-transform:uppercase;letter-spacing:.35px}
+.mob-staff-hint{margin-top:4px;font-size:12px;line-height:1.35;color:var(--s500);max-width:30ch}
+.mob-staff-hint-dismiss{border:none;background:none;padding:2px 0;color:var(--s400);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mob-staff-hint-dismiss:active{color:var(--s600)}
 .mob-staff-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--white);border-radius:14px;border:1px solid var(--s100);box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:background .15s;min-height:56px;-webkit-tap-highlight-color:transparent}
 .mob-staff-row:active{background:var(--pink-50)}
 .mob-staff-name{font-size:15px;font-weight:700;color:var(--s800);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -7186,6 +7191,38 @@ function closeAuth(){
 function isMobile(){return typeof window!=='undefined'&&window.innerWidth<=768}
 let mobileTab='roster';
 let mobileDayIndex=0;
+const MOBILE_ROSTER_HINT_KEY='mobile_roster_reorder_hint_dismissed';
+
+function isMobileRosterHintDismissed(){
+  try{return localStorage.getItem(MOBILE_ROSTER_HINT_KEY)==='1'}catch(e){return false}
+}
+
+function dismissMobileRosterHint(ev){
+  if(ev&&typeof ev.stopPropagation==='function')ev.stopPropagation();
+  try{localStorage.setItem(MOBILE_ROSTER_HINT_KEY,'1')}catch(e){}
+  const hint=document.getElementById('mobRosterHint');
+  if(hint)hint.remove();
+}
+
+function buildMobileStaffList(di,emptyText){
+  const vs=activeStaff();
+  const showHint=!isMobileRosterHintDismissed();
+  let html='<div class="mob-staff-head"><div><div class="mob-staff-title">Staff list</div>';
+  if(showHint)html+='<div class="mob-staff-hint" id="mobRosterHint">Tap ⋯ beside a staff member to move up/down.</div>';
+  html+='</div>';
+  if(showHint)html+='<button type="button" class="mob-staff-hint-dismiss" onclick="dismissMobileRosterHint(event)">Dismiss</button>';
+  html+='</div>';
+  if(vs.length===0)return html+`<div class="mob-empty">${emptyText}</div>`;
+  vs.forEach(s=>{
+    const sh=s.shifts[di];
+    let shiftText='—'; let shiftCls='off';
+    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
+    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
+    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
+    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
+  });
+  return html;
+}
 
 function setMobTab(tab){
   mobileTab=tab;
@@ -7232,18 +7269,8 @@ function renderMobileRoster(){
   });
   html+='</div>';
   html+='<div class="mob-staff-list" id="mobStaffList">';
-  const vs=activeStaff();
   const di=mobileDayIndex;
-  const shDay=getHol(dates[di]);
-  if(vs.length===0)html+='<div class="mob-empty">No staff in this roster. Add staff on desktop or tap + in the roster tab bar.</div>';
-  else vs.forEach(s=>{
-    const sh=s.shifts[di];
-    let shiftText='—'; let shiftCls='off';
-    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
-    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
-    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
-    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
-  });
+  html+=buildMobileStaffList(di,'No staff in this roster. Add staff on desktop or tap + in the roster tab bar.');
   html+='</div>';
   view.innerHTML=html;
   if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
@@ -7255,19 +7282,7 @@ function setMobileDay(di){
   if(!list)return;
   const strip=document.getElementById('mobDayStrip');
   if(strip)strip.querySelectorAll('.mob-day-pill').forEach((p,i)=>{p.classList.toggle('sel',i===di);});
-  const dates=getWD();
-  const vs=activeStaff();
-  let html='';
-  if(vs.length===0)html='<div class="mob-empty">No staff in this roster.</div>';
-  else vs.forEach(s=>{
-    const sh=s.shifts[di];
-    let shiftText='—'; let shiftCls='off';
-    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
-    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
-    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
-    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
-  });
-  list.innerHTML=html;
+  list.innerHTML=buildMobileStaffList(di,'No staff in this roster.');
 }
 
 function renderMobileDash(){
