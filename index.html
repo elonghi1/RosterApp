@@ -1520,6 +1520,7 @@ let activeEntityId=null; // when set, only rosters with this entityId are shown
 const SAVE_KEY='rosterPro_v1';
 const CLOUD_SNAPSHOT_KEY='rosterPro_cloudSnapshot';
 const API_TOKEN_KEY='rosterPro_apiToken';
+const CLOUD_LOGIN_NAME_KEY='rosterPro_cloudLoginName';
 const DEFAULT_REMOTE_STATE_URL='https://rosterapp-production-721b.up.railway.app/api/state';
 const REMOTE_SYNC_POLL_MS=30000;
 function resolveRemoteStateUrl(){
@@ -1558,10 +1559,19 @@ function showLoginOverlay(reason){
   const err=document.getElementById('apiLoginErr');
   const pw=document.getElementById('apiLoginPw');
   const nameEl=document.getElementById('apiLoginName');
-  if(msg) msg.textContent=reason==='save' ? 'Sign in to save to the cloud.' : 'Enter the app password to sync with the cloud.';
+  const skipBtn=document.getElementById('apiLoginSkipBtn');
+  const title=document.getElementById('loginOverlayTitle');
+  const rememberedName=localStorage.getItem(CLOUD_LOGIN_NAME_KEY)||'';
+  if(title) title.textContent=reason==='save' ? 'Cloud save needs login' : 'Connect to cloud sync';
+  if(msg){
+    msg.textContent=reason==='save'
+      ? 'Log in to continue saving this roster to the cloud.'
+      : 'Log in to pull and sync your cloud roster. You can continue offline if needed.';
+  }
+  if(skipBtn) skipBtn.style.display=reason==='save'?'none':'inline-flex';
   if(err) err.textContent='';
   if(pw) pw.value='';
-  if(nameEl) nameEl.value='';
+  if(nameEl) nameEl.value=rememberedName;
   const ov=document.getElementById('loginOverlay');
   if(ov){ ov.classList.remove('hidden'); document.body.classList.add('login-required'); setTimeout(()=>(nameEl&&nameEl.focus())||(pw&&pw.focus()),80); }
 }
@@ -1571,29 +1581,38 @@ function hideLoginOverlay(){
   document.body.classList.remove('login-required');
   const pw=document.getElementById('apiLoginPw');
   if(pw) pw.value='';
-  const nameEl=document.getElementById('apiLoginName');
-  if(nameEl) nameEl.value='';
+}
+function continueOfflineMode(){
+  hideLoginOverlay();
+  setSaveStatus('idle','Offline mode','Cloud sync paused until you log in');
+  toast('Continuing with local data only');
 }
 async function doApiLogin(){
   const pwEl=document.getElementById('apiLoginPw');
   const nameEl=document.getElementById('apiLoginName');
   const errEl=document.getElementById('apiLoginErr');
+  const btn=document.getElementById('apiLoginBtn');
   const password=pwEl?pwEl.value.trim():'';
   const username=nameEl?nameEl.value.trim():'';
   if(!password){ if(errEl) errEl.textContent='Enter the password.'; return; }
   if(errEl) errEl.textContent='';
+  if(btn){btn.disabled=true;btn.textContent='Logging in…';}
   try{
     const res=await fetch(REMOTE_LOGIN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username||'Anonymous',password})});
     const data=await res.json().catch(()=>({}));
     if(res.ok&&data&&data.token){
       setApiToken(data.token);
+      if(username) localStorage.setItem(CLOUD_LOGIN_NAME_KEY,username);
       hideLoginOverlay();
+      toast('Cloud sync connected');
       if(typeof window._afterLoginRetry==='function') window._afterLoginRetry();
       return;
     }
     if(errEl) errEl.textContent=data.message||'Invalid password.';
   }catch(e){
     if(errEl) errEl.textContent='Network error. Try again.';
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Log in to cloud';}
   }
 }
 function doApiLogout(){
@@ -7247,18 +7266,32 @@ function saveEasyModeConfig(){
 
 function toggleEasyMode(){
   if(easyMode){
-    // Currently locked — need password to unlock
-    const auth=getAuth();
-    if(!auth){
-      showAuthSetup();
-    }else{
-      showAuthLogin();
-    }
+    showModeAccessChoice();
   }else{
-    // Currently unlocked — lock back to easy mode
     applyEasyMode(true);
     toast('Locked — Easy Mode active');
   }
+}
+
+function showModeAccessChoice(){
+  hideLoginOverlay();
+  const auth=getAuth();
+  let h='<div class="auth-box">';
+  h+='<div class="auth-title">Choose Full Mode access</div>';
+  h+='<div class="auth-sub">Full Mode gives access to advanced tools, pay settings, and manager controls.</div>';
+  if(auth&&auth.hash){
+    h+='<button class="auth-btn auth-btn-primary" onclick="showAuthLogin()">Unlock with password</button>';
+    h+='<button class="auth-btn auth-btn-ghost" onclick="showForgotPassword()">Forgot password</button>';
+    h+='<button class="auth-btn auth-btn-ghost" onclick="showAuthSetup()">Change unlock password</button>';
+  }else{
+    h+='<div class="auth-success" style="margin-bottom:10px">No Full Mode password is set on this device yet.</div>';
+    h+='<button class="auth-btn auth-btn-primary" onclick="showAuthSetup()">Set up Full Mode password</button>';
+  }
+  h+='<button class="auth-btn auth-btn-ghost" onclick="closeAuth()" style="margin-top:4px">Keep Easy Mode</button>';
+  h+='</div>';
+  const overlay=el('authOverlay');
+  overlay.innerHTML=h;
+  overlay.classList.remove('hidden');
 }
 
 function showFirstAccessConfig(){
@@ -7291,7 +7324,7 @@ function showAuthSetup(){
   h+='<div class="auth-field hidden" id="authCustomQWrap"><label>Custom Question</label><input type="text" id="authCustomQ" placeholder="Your question"></div>';
   h+='<div class="auth-field"><label>Security Answer</label><input type="text" id="authA" placeholder="Your answer (case-insensitive)"></div>';
   h+='<button class="auth-btn auth-btn-primary" onclick="doAuthSetup()">Set Password</button>';
-  h+='<button class="auth-btn auth-btn-ghost" onclick="closeAuth()">Cancel</button>';
+  h+='<button class="auth-btn auth-btn-ghost" onclick="showModeAccessChoice()">Back</button>';
   h+='<div class="auth-error" id="authErr"></div>';
   h+='</div>';
   const overlay=el('authOverlay');
@@ -7359,7 +7392,7 @@ function showAuthLogin(){
   h+='<div class="auth-field"><label>Password</label><input type="password" id="authPwLogin" placeholder="Enter password" onkeydown="if(event.key===\'Enter\')doAuthLogin()"></div>';
   h+='<button class="auth-btn auth-btn-primary" onclick="doAuthLogin()">Unlock</button>';
   h+='<button class="auth-btn auth-btn-ghost" onclick="showForgotPassword()">Forgot Password?</button>';
-  h+='<button class="auth-btn auth-btn-ghost" onclick="closeAuth()" style="margin-top:4px">Cancel</button>';
+  h+='<button class="auth-btn auth-btn-ghost" onclick="showModeAccessChoice()" style="margin-top:4px">Back</button>';
   h+='<div class="auth-error" id="authErr"></div>';
   h+='</div>';
   el('authOverlay').innerHTML=h;
@@ -7692,11 +7725,13 @@ init();
 <div class="auth-overlay hidden" id="authOverlay"></div>
 <div class="auth-overlay hidden" id="loginOverlay" onclick="event.target===this&&event.preventDefault()" role="dialog" aria-modal="true" aria-labelledby="loginOverlayTitle">
   <div class="auth-box" onclick="event.stopPropagation()">
-    <h2 id="loginOverlayTitle" style="margin:0 0 16px;font-size:1.25rem">Cloud login</h2>
-    <p id="loginOverlayMsg" style="margin:0 0 12px;color:var(--s400);font-size:0.9rem">Enter the app password to sync with the cloud.</p>
-    <div class="auth-field"><label>Your name (for sync)</label><input type="text" id="apiLoginName" placeholder="e.g. Alice" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('apiLoginPw').focus()"></div>
-    <div class="auth-field"><label>Password</label><input type="password" id="apiLoginPw" placeholder="Password" onkeydown="if(event.key==='Enter')doApiLogin()"></div>
-    <button class="auth-btn auth-btn-primary" onclick="doApiLogin()">Log in</button>
+    <h2 id="loginOverlayTitle" style="margin:0 0 16px;font-size:1.25rem">Connect to cloud sync</h2>
+    <p id="loginOverlayMsg" style="margin:0 0 12px;color:var(--s400);font-size:0.9rem">Log in to sync this roster across devices.</p>
+    <div class="auth-field"><label>Your name (for sync history)</label><input type="text" id="apiLoginName" placeholder="e.g. Alice" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('apiLoginPw').focus()"></div>
+    <div class="auth-field"><label>Cloud password</label><input type="password" id="apiLoginPw" placeholder="Password" onkeydown="if(event.key==='Enter')doApiLogin()"></div>
+    <button class="auth-btn auth-btn-primary" id="apiLoginBtn" onclick="doApiLogin()">Log in to cloud</button>
+    <button class="auth-btn auth-btn-ghost" id="apiLoginSkipBtn" onclick="continueOfflineMode()">Continue offline for now</button>
+    <div class="auth-code-hint" style="margin-top:6px">Offline mode keeps local changes only until you sign in again.</div>
     <div class="auth-error" id="apiLoginErr"></div>
   </div>
 </div>
