@@ -869,8 +869,8 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
   .mobile-shell{display:flex}
 }
 @media(max-width:768px) and (orientation:portrait){
-  body.mobile-full-portrait .desktop-wrap{display:block!important}
-  body.mobile-full-portrait .mobile-shell{display:none!important}
+  body.mobile-full-portrait .desktop-wrap{display:none!important}
+  body.mobile-full-portrait .mobile-shell{display:flex!important}
   body.mobile-full-portrait .stores-bar-inner{align-items:flex-start}
   body.mobile-full-portrait .stores-bar-list{flex:1 0 100%;order:3}
   body.mobile-full-portrait .stores-bar-actions{order:2}
@@ -7386,16 +7386,11 @@ function checkViewport(){
   const fullPortrait=isMobileRealFullMode();
   document.body.classList.toggle('mobile-full-portrait',fullPortrait);
   if(isMobile()){
-    if(fullPortrait){
-      desk.style.removeProperty('display');
-      mob.style.display='none';
-    }else{
-      desk.style.display='none';
-      mob.style.display='flex';
-      setMobTab(mobileTab);
-      updateMobSyncDot();
-      updateMobileEasyToggle();
-    }
+    desk.style.display='none';
+    mob.style.display='flex';
+    setMobTab(mobileTab);
+    updateMobSyncDot();
+    updateMobileEasyToggle();
   }else{
     desk.style.display='block';
     mob.style.display='none';
