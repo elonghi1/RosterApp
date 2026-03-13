@@ -7206,7 +7206,16 @@ function dismissMobileRosterHint(ev){
 
 function mobileRosterHintHtml(){
   if(isMobileRosterHintDismissed())return '';
-  return '<div class="mob-staff-head"><div><div class="mob-staff-title">Staff list</div><div class="mob-staff-hint" id="mobRosterHint">Tap ⋯ beside a staff member to move up/down.</div></div><button type="button" class="mob-staff-hint-dismiss" onclick="dismissMobileRosterHint(event)">Dismiss</button></div>';
+  return '<div class="mob-staff-head" id="mobRosterHint"><div><div class="mob-staff-title">Staff list</div><div class="mob-staff-hint">Tap ⋯ beside a staff member to move up/down.</div></div><button type="button" class="mob-staff-hint-dismiss" onclick="dismissMobileRosterHint(event)">Dismiss</button></div>';
+}
+
+function renderMobileStaffRow(s,di){
+  const sh=s.shifts[di];
+  let shiftText='—'; let shiftCls='off';
+  if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
+  else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
+  else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
+  return `<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
 }
 
 function setMobTab(tab){
@@ -7258,14 +7267,7 @@ function renderMobileRoster(){
   const di=mobileDayIndex;
   html+=mobileRosterHintHtml();
   if(vs.length===0)html+='<div class="mob-empty">No staff in this roster. Add staff on desktop or tap + in the roster tab bar.</div>';
-  else vs.forEach(s=>{
-    const sh=s.shifts[di];
-    let shiftText='—'; let shiftCls='off';
-    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
-    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
-    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
-    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
-  });
+  else vs.forEach(s=>{html+=renderMobileStaffRow(s,di);});
   html+='</div>';
   view.innerHTML=html;
   if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
@@ -7280,14 +7282,7 @@ function setMobileDay(di){
   const vs=activeStaff();
   let html=mobileRosterHintHtml();
   if(vs.length===0)html+='<div class="mob-empty">No staff in this roster.</div>';
-  else vs.forEach(s=>{
-    const sh=s.shifts[di];
-    let shiftText='—'; let shiftCls='off';
-    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
-    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
-    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
-    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
-  });
+  else vs.forEach(s=>{html+=renderMobileStaffRow(s,di);});
   list.innerHTML=html;
 }
 
