@@ -574,6 +574,7 @@ body.grid-mode .hrs-val{font-size:13px;font-weight:500}
 
 /* ═══ Auth Modal ═══ */
 .auth-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:rgba(15,10,30,.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:authIn .2s ease}
+#authOverlay{z-index:100000}
 #loginOverlay{z-index:99999;pointer-events:auto}
 #loginOverlay .auth-box{pointer-events:auto}
 body.login-required .desktop-wrap{display:none!important}
@@ -870,6 +871,16 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 @media(max-width:768px) and (orientation:portrait){
   body.mobile-full-portrait .desktop-wrap{display:block!important}
   body.mobile-full-portrait .mobile-shell{display:none!important}
+  body.mobile-full-portrait .wrap{max-width:100%;padding:10px 12px 88px}
+  body.mobile-full-portrait .stores-bar{padding:8px 12px}
+  body.mobile-full-portrait .stores-bar-inner{max-width:100%;padding:0;align-items:flex-start}
+  body.mobile-full-portrait .stores-bar-list{flex:1 0 100%;order:3}
+  body.mobile-full-portrait .stores-bar-list .store-chip{min-width:0;min-height:40px;padding:8px 12px}
+  body.mobile-full-portrait .stores-bar-actions{order:2}
+  body.mobile-full-portrait .stores-bar-list .store-chip.empty{white-space:normal;line-height:1.25;max-width:100%}
+  body.mobile-full-portrait .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  body.mobile-full-portrait .tab{flex:0 0 auto;min-width:98px;white-space:nowrap}
+  body.mobile-full-portrait .rtab-name{max-width:132px}
 }
 .mob-header{flex-shrink:0;background:linear-gradient(135deg,#9333ea 0%,#db2777 50%);padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0));padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px}
 .mob-header-left{display:flex;align-items:center;gap:10px;min-width:0}
@@ -892,6 +903,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .mob-stores-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .mob-stores-list::-webkit-scrollbar{display:none}
 .mob-stores-list .store-chip{flex-shrink:0}
+.mob-stores-list .store-chip.empty{white-space:normal;line-height:1.25;max-width:100%;flex-shrink:1}
 .mob-store-add{flex-shrink:0;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--purple-200);background:var(--white);color:var(--purple-600);font-size:12px;font-weight:700;font-family:inherit;display:inline-flex;align-items:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mob-store-add svg{width:14px;height:14px}
 .mob-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 16px;padding-left:calc(16px + env(safe-area-inset-left,0));padding-right:calc(16px + env(safe-area-inset-right,0));padding-bottom:calc(12px + env(safe-area-inset-bottom,0))}
@@ -1500,8 +1512,22 @@ let activeEntityId=null; // when set, only rosters with this entityId are shown
 const SAVE_KEY='rosterPro_v1';
 const CLOUD_SNAPSHOT_KEY='rosterPro_cloudSnapshot';
 const API_TOKEN_KEY='rosterPro_apiToken';
-const REMOTE_STATE_URL='https://rosterapp-production-721b.up.railway.app/api/state';
-const REMOTE_LOGIN_URL=REMOTE_STATE_URL.replace(/\/api\/state$/, '/api/login');
+const DEFAULT_REMOTE_STATE_URL='https://rosterapp-production-721b.up.railway.app/api/state';
+function resolveRemoteStateUrl(){
+  try{
+    const qp=new URLSearchParams(window.location.search||'');
+    const fromQuery=(qp.get('cloudStateUrl')||'').trim();
+    const fromStorage=(localStorage.getItem('rosterPro_cloudStateUrl')||'').trim();
+    const raw=fromQuery||fromStorage||DEFAULT_REMOTE_STATE_URL;
+    if(!raw) return DEFAULT_REMOTE_STATE_URL;
+    if(/\/api\/state$/i.test(raw)) return raw;
+    return raw.replace(/\/+$/,'')+'/api/state';
+  }catch(e){
+    return DEFAULT_REMOTE_STATE_URL;
+  }
+}
+const REMOTE_STATE_URL=resolveRemoteStateUrl();
+const REMOTE_LOGIN_URL=REMOTE_STATE_URL.replace(/\/api\/state$/i, '/api/login');
 let _saveTimer=null;
 let saveStatus={state:'idle',message:'Saved locally',meta:'Ready for backup',ts:null};
 
@@ -6961,6 +6987,7 @@ function toggleEasyMode(){
 }
 
 function showFirstAccessConfig(){
+  hideLoginOverlay();
   const auth=getAuth();
   if(auth&&auth.hash) return;
   let h='<div class="auth-box">';
@@ -6979,6 +7006,7 @@ function showFirstAccessConfig(){
 // ─── Auth UI Screens ───
 
 function showAuthSetup(){
+  hideLoginOverlay();
   let h='<div class="auth-box">';
   h+='<div class="auth-title">Set Up Full Mode Password</div>';
   h+='<div class="auth-sub">This password protects access to pay data, settings, and advanced features</div>';
@@ -7049,6 +7077,7 @@ function finishSetup(){
 }
 
 function showAuthLogin(){
+  hideLoginOverlay();
   let h='<div class="auth-box">';
   h+='<div class="auth-title">Unlock Full Mode</div>';
   h+='<div class="auth-sub">Enter your password to access all features</div>';
@@ -7385,12 +7414,6 @@ async function init(){
   lucide.createIcons();
   checkViewport();
   window.addEventListener('resize',checkViewport);
-  try{
-    const auth=getAuth();
-    if(!auth||!auth.hash){
-      setTimeout(()=>showFirstAccessConfig(),180);
-    }
-  }catch(e){}
 }
 init();
 </script>
