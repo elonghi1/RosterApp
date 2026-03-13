@@ -14,6 +14,16 @@ State API for Roster Pro.
 
 When `AUTH_PASSWORD` is set, auth is required for `GET/PUT /api/state`, `GET /api/state/meta`, `GET /api/session`, and `POST /api/logout`.
 
+
+### Destructive-write protection
+
+`PUT /api/state` now rejects accidental empty overwrites when cloud data already exists.
+
+- If the current cloud state has staff/shifts and an incoming payload has **0 staff and 0 shifts**, the API returns `409` with code `destructive_write_blocked`.
+- This prevents a newly opened/stale device from wiping shared data across devices.
+- To intentionally replace cloud data with an empty state (for a real reset), send header:
+  - `X-Force-Overwrite: true`
+
 ## Environment variables
 
 - `PORT` (optional, defaults to `4000`)
