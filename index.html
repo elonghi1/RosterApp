@@ -2852,8 +2852,9 @@ function manuallyLink(tabId1,sid1,tabId2,sid2){
   unique.forEach(s=>s.linkedId=lid);
   syncLinkedStaff(s1);
   saveState();
+  renderStaffTab();
+  if(typeof renderAll==='function')renderAll();
   toast(`${s1.name} linked across rosters ✓`);
-  requestAnimationFrame(()=>{ renderStaffTab(); if(typeof renderAll==='function') renderAll(); });
 }
 
 // Unlink — identified by [tabId, staffId]
@@ -2867,6 +2868,7 @@ function unlinkStaff(tabId,staffId){
     if(remaining.length===1)remaining[0].linkedId=null;
   }
   saveState();
+  if(typeof renderAll==='function')renderAll();
   toast(`${s.name} unlinked`);
   renderStaffTab();
 }
@@ -3128,7 +3130,7 @@ function openManualLinkPopup(tabId,staffId){
   byRoster.forEach(({tab,people})=>{
     h+=`<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--s400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px"><i data-lucide="layout-grid" style="width:10px;height:10px;vertical-align:middle"></i> ${esc(tab.name)}</div>`;
     people.forEach(({s:x,alreadyLinked})=>{
-      h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;gap:8px;text-align:left;width:100%;margin-bottom:2px;${alreadyLinked?'opacity:.5;pointer-events:none':''}" onclick="manuallyLink(${tabId},${staffId},${tab.id},${x.id});closePop();renderStaffTab();renderAll();toast('Linked across rosters');">
+      h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;gap:8px;text-align:left;width:100%;margin-bottom:2px;${alreadyLinked?'opacity:.5;pointer-events:none':''}" onclick="manuallyLink(${tabId},${staffId},${tab.id},${x.id});closePop();">
         <i data-lucide="user" style="width:12px;height:12px;flex-shrink:0"></i>
         <span style="font-weight:600">${esc(x.name)}</span>
         ${alreadyLinked?'<span style="font-size:9px;color:#059669">linked</span>':''}
@@ -3155,7 +3157,7 @@ function confirmUnlinkStaff(tabId,staffId){
   h+=`<div style="display:flex;flex-direction:column;gap:4px">`;
   rosterEntries.forEach(({tab,staff:copy})=>{
     const isCurrent=tab.id===currentTab.id;
-    h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;text-align:left" onclick="unlinkStaff(${tab.id},${copy.id});closePop();renderStaffTab();renderAll();toast('Unlinked');"><i data-lucide="layout-grid" style="width:14px;height:14px"></i> ${esc(tab.name)}${isCurrent?' <span style="font-size:9px;color:var(--s400)">(current)</span>':''}</button>`;
+    h+=`<button type="button" class="btn btn-ghost" style="justify-content:flex-start;text-align:left" onclick="unlinkStaff(${tab.id},${copy.id});closePop();"><i data-lucide="layout-grid" style="width:14px;height:14px"></i> ${esc(tab.name)}${isCurrent?' <span style="font-size:9px;color:var(--s400)">(current)</span>':''}</button>`;
   });
   h+=`</div><button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="closePop()">Cancel</button></div>`;
   el('popOver').innerHTML=h;el('popOver').classList.remove('hidden');lucide.createIcons();
