@@ -6884,6 +6884,7 @@ function applyEasyMode(on){
   }else{
     document.body.classList.remove('em-hide-rates','em-hide-hours','em-hide-hybrid','em-hide-tabs');
   }
+  if(typeof checkViewport==='function')checkViewport();
 }
 
 function updateMobileEasyToggle(){
@@ -7184,6 +7185,12 @@ function closeAuth(){
 
 // ═══ Mobile interface (from scratch) ═══
 function isMobile(){return typeof window!=='undefined'&&window.innerWidth<=768}
+function isPortraitMobile(){
+  return isMobile()&&typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(orientation: portrait)').matches;
+}
+function isMobileRealFullMode(){
+  return isPortraitMobile()&&!document.body.classList.contains('easy-mode');
+}
 let mobileTab='roster';
 let mobileDayIndex=0;
 
@@ -7311,15 +7318,23 @@ function updateMobSyncDot(){
 }
 
 function checkViewport(){
+  const desk=document.querySelector('.desktop-wrap');
+  const mob=document.getElementById('mobileShell');
+  if(!desk||!mob)return;
   if(isMobile()){
-    document.querySelector('.desktop-wrap').style.display='none';
-    document.getElementById('mobileShell').style.display='flex';
-    setMobTab(mobileTab);
-    updateMobSyncDot();
-    updateMobileEasyToggle();
+    if(isMobileRealFullMode()){
+      desk.style.display='block';
+      mob.style.display='none';
+    }else{
+      desk.style.display='none';
+      mob.style.display='flex';
+      setMobTab(mobileTab);
+      updateMobSyncDot();
+      updateMobileEasyToggle();
+    }
   }else{
-    document.querySelector('.desktop-wrap').style.display='block';
-    document.getElementById('mobileShell').style.display='none';
+    desk.style.display='block';
+    mob.style.display='none';
   }
 }
 
