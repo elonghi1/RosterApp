@@ -918,13 +918,17 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .mob-day-pill.sel .dow,.mob-day-pill.sel .day{color:#fff}
 .mob-day-pill.hol{border-color:var(--amber-400);background:var(--amber-50)}
 .mob-staff-list{display:flex;flex-direction:column;gap:8px}
-.mob-staff-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--white);border-radius:14px;border:1px solid var(--s100);box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:background .15s;min-height:56px;-webkit-tap-highlight-color:transparent}
-.mob-staff-row:active{background:var(--pink-50)}
+.mob-staff-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--white);border-radius:14px;border:1px solid var(--s100);box-shadow:0 1px 3px rgba(0,0,0,.04);transition:background .15s;min-height:60px;-webkit-tap-highlight-color:transparent}
+.mob-staff-main{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 8px;border:none;background:transparent;text-align:left;cursor:pointer;border-radius:10px;min-height:44px;font-family:inherit}
+.mob-staff-main:active{background:var(--pink-50)}
 .mob-staff-name{font-size:15px;font-weight:700;color:var(--s800);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mob-staff-shift{font-size:13px;font-weight:600;color:var(--s600);flex-shrink:0}
 .mob-staff-shift.off{color:var(--s400)}
 .mob-staff-shift.al{color:#1d4ed8}
 .mob-staff-shift.sick{color:#be185d}
+.mob-staff-actions{width:44px;height:44px;min-width:44px;min-height:44px;border:none;border-radius:10px;background:var(--s50);color:var(--s600);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.mob-staff-actions:active{background:var(--pink-100);color:var(--pink-600)}
+.mob-staff-actions svg{width:18px;height:18px}
 .mob-empty{text-align:center;padding:32px 16px;color:var(--s500);font-size:14px;font-weight:500}
 .mob-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .mob-stat-card{background:var(--white);border-radius:14px;padding:18px;border:1px solid var(--s100);box-shadow:0 1px 3px rgba(0,0,0,.04)}
@@ -937,6 +941,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 
 @media (max-width:768px) and (orientation:portrait){
   body.easy-mode .mob-easy-toggle{display:inline-flex}
+  .mob-staff-actions{display:inline-flex;visibility:visible;opacity:1}
 }
 
 @media print{
@@ -7199,6 +7204,35 @@ function setMobTab(tab){
   if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
 }
 
+function renderMobileStaffRow(s,di){
+  const sh=s.shifts[di];
+  let shiftText='—'; let shiftCls='off';
+  if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
+  else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
+  else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
+  return `<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}"><button type="button" class="mob-staff-main" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></button><button type="button" class="mob-staff-actions" aria-label="More actions for ${esc(s.name)}" title="More actions" onclick="openMobileStaffActions(${s.id});event.stopPropagation()"><i data-lucide="ellipsis-vertical"></i></button></div>`;
+}
+
+function openMobileStaffActions(sid){
+  const s=activeStaff().find(x=>x.id===sid);
+  if(!s)return;
+  const si=staff.indexOf(s);
+  if(si<0)return;
+  const btn=document.querySelector(`.mob-staff-row[data-sid="${sid}"] .mob-staff-actions`);
+  const r=btn?btn.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,bottom:window.innerHeight/2,width:0};
+  const x=Math.round(r.left+(r.width||0)/2);
+  const y=Math.round((r.bottom||r.top)+8);
+  const items=[
+    {icon:'pencil',label:'Edit name',action(){startEditName(sid)}},
+    {icon:'arrow-up',label:'Move up',action(){mvStaff(si,-1)}},
+    {icon:'arrow-down',label:'Move down',action(){mvStaff(si,1)}},
+    'sep',
+    {icon:'settings-2',label:'Pay settings',action(){openPaySettings(sid)}},
+    {icon:'heart',label:'Edit preferences',action(){openStaffPreferencesPopup(sid)}},
+  ];
+  showCtx(x,y,items);
+}
+
 function renderMobileRoster(){
   const view=el('mobContent');
   if(!view||!view.classList.contains('mob-roster-view'))return;
@@ -7236,14 +7270,7 @@ function renderMobileRoster(){
   const di=mobileDayIndex;
   const shDay=getHol(dates[di]);
   if(vs.length===0)html+='<div class="mob-empty">No staff in this roster. Add staff on desktop or tap + in the roster tab bar.</div>';
-  else vs.forEach(s=>{
-    const sh=s.shifts[di];
-    let shiftText='—'; let shiftCls='off';
-    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
-    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
-    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
-    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
-  });
+  else vs.forEach(s=>{html+=renderMobileStaffRow(s,di);});
   html+='</div>';
   view.innerHTML=html;
   if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
@@ -7259,15 +7286,9 @@ function setMobileDay(di){
   const vs=activeStaff();
   let html='';
   if(vs.length===0)html='<div class="mob-empty">No staff in this roster.</div>';
-  else vs.forEach(s=>{
-    const sh=s.shifts[di];
-    let shiftText='—'; let shiftCls='off';
-    if(isAL(sh)){shiftText='Annual Leave';shiftCls='al'}
-    else if(isSick(sh)){shiftText='Sick';shiftCls='sick'}
-    else if(sh&&sh.start&&sh.end)shiftText=ft(sh.start)+' – '+ft(sh.end);
-    html+=`<div class="mob-staff-row" data-sid="${s.id}" data-di="${di}" onclick="openPop(${s.id},${di})"><span class="mob-staff-name">${esc(s.name)}</span><span class="mob-staff-shift ${shiftCls}">${shiftText}</span></div>`;
-  });
+  else vs.forEach(s=>{html+=renderMobileStaffRow(s,di);});
   list.innerHTML=html;
+  if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons();
 }
 
 function renderMobileDash(){
