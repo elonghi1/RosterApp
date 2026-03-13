@@ -2403,18 +2403,52 @@ function doBulk(){
   pushUndo("Bulk add staff");const ns=el('bulkNames').value.split('\n').map(n=>n.trim()).filter(Boolean);const rate=parseFloat(el('bulkRate').value)||0;ns.forEach(nm=>{const _ns={id:nid++,name:nm,rate,cashRate:0,maxHours:0,salary:0,payType:'hourly',badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds:[],daysOff:[]},shifts:ew(),weekShifts:{}};_ns.weekShifts[weekKey()]=_ns.shifts;staff.push(_ns)});el('bulkNames').value='';hideBulk();renderAll()}
 function rmStaff(id,expectedName=''){
   pushUndo("Remove staff");
+  const wk=weekKey();
   const normalizedExpected=String(expectedName||'').trim().toLowerCase();
   const byId=staff.filter(x=>x.id===id);
+  console.debug('[Roster Debug] Remove staff clicked',{
+    requestedId:id,
+    expectedName,
+    normalizedExpected,
+    week:wk,
+    matchesById:byId.map(x=>({
+      id:x.id,
+      name:x.name,
+      alreadyRemoved:Boolean(x.leftOn),
+      leftOn:x.leftOn||null
+    }))
+  });
   let s=null;
   if(normalizedExpected){
     s=byId.find(x=>x.name.trim().toLowerCase()===normalizedExpected)||null;
   }
   if(!s)s=byId.find(x=>!x.leftOn)||byId[0]||null;
-  if(!s)return;
+  if(!s){
+    console.debug('[Roster Debug] Remove staff aborted: no matching staff found',{
+      requestedId:id,
+      expectedName,
+      activeStaffCount:staff.filter(x=>!x.leftOn).length
+    });
+    return;
+  }
+  if(s.leftOn&&s.leftOn<=wk){
+    console.debug('[Roster Debug] Remove staff skipped: staff already removed for this week or earlier',{
+      staffId:s.id,
+      name:s.name,
+      leftOn:s.leftOn,
+      currentWeek:wk
+    });
+  }
   // Soft-delete: mark with leftOn week key so past weeks retain data
-  s.leftOn=weekKey();
+  s.leftOn=wk;
   // Clear shifts from current week onward
   s.shifts.forEach((_,i)=>{s.shifts[i]={start:'',end:'',type:''}});
+  console.debug('[Roster Debug] Remove staff applied',{
+    staffId:s.id,
+    name:s.name,
+    leftOn:s.leftOn,
+    clearedShiftSlots:s.shifts.length
+  });
   renderAll();
   toast(s.name+' removed (kept in past weeks)');
 }
