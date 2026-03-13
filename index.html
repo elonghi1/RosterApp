@@ -2401,9 +2401,15 @@ function doAdd(){
   const _ns={id:nid++,name:nm,rate,cashRate:0,maxHours:mh,salary:sal,payType:pt,badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds:[],daysOff:[]},shifts:ew(),weekShifts:{}};_ns.weekShifts[weekKey()]=_ns.shifts;staff.push(_ns);n.value='';n.focus();renderAll()}
 function doBulk(){
   pushUndo("Bulk add staff");const ns=el('bulkNames').value.split('\n').map(n=>n.trim()).filter(Boolean);const rate=parseFloat(el('bulkRate').value)||0;ns.forEach(nm=>{const _ns={id:nid++,name:nm,rate,cashRate:0,maxHours:0,salary:0,payType:'hourly',badge:'',scheduleType:'variable',fixedDaysOff:[],fixedShift:null,priority:0,payrollStore:'',preferences:{shiftTypeIds:[],daysOff:[]},shifts:ew(),weekShifts:{}};_ns.weekShifts[weekKey()]=_ns.shifts;staff.push(_ns)});el('bulkNames').value='';hideBulk();renderAll()}
-function rmStaff(id){
+function rmStaff(id,expectedName=''){
   pushUndo("Remove staff");
-  const s=staff.find(x=>x.id===id);
+  const normalizedExpected=String(expectedName||'').trim().toLowerCase();
+  const byId=staff.filter(x=>x.id===id);
+  let s=null;
+  if(normalizedExpected){
+    s=byId.find(x=>x.name.trim().toLowerCase()===normalizedExpected)||null;
+  }
+  if(!s)s=byId.find(x=>!x.leftOn)||byId[0]||null;
   if(!s)return;
   // Soft-delete: mark with leftOn week key so past weeks retain data
   s.leftOn=weekKey();
@@ -2796,6 +2802,11 @@ function findStaffByTabAndId(tabId,staffId){
   return t?t.staff.find(s=>s.id===staffId):null;
 }
 
+function normalizeRoleBadge(badge){
+  const normalized=String(badge||'').trim().toLowerCase();
+  return (normalized==='supervisor'||normalized==='manager')?normalized:'';
+}
+
 // Manually link two staff members — identified by [tabId, staffId] pairs
 function manuallyLink(tabId1,sid1,tabId2,sid2){
   const s1=findStaffByTabAndId(tabId1,sid1);
@@ -2972,8 +2983,9 @@ function renderStaffTab(){
     
     // Badges
     let badges='';
-    if(s.badge==='supervisor')badges+=`<span class="staff-badge b-supervisor">SUP</span>`;
-    if(s.badge==='manager')badges+=`<span class="staff-badge b-manager">MGR</span>`;
+    const roleBadge=normalizeRoleBadge(s.badge);
+    if(roleBadge==='supervisor')badges+=`<span class="staff-badge b-supervisor">SUP</span>`;
+    if(roleBadge==='manager')badges+=`<span class="staff-badge b-manager">MGR</span>`;
     if(s.priority>0)badges+=`<span class="staff-badge b-priority">★ PRI</span>`;
     if(s.scheduleType==='fixed')badges+=`<span class="staff-badge b-fixed">FIX</span>`;
     if(isHyb)badges+=`<span style="font-size:7px;font-weight:700;color:#7c3aed;background:#f3e8ff;padding:1px 5px;border-radius:3px">⇄ HYB</span>`;
@@ -3048,7 +3060,7 @@ function renderStaffTab(){
         <button class="btn btn-xs btn-ghost" onclick="openRenameStaffPopup(${s.id})"><i data-lucide="pencil" style="width:11px;height:11px"></i> Rename</button>
         <button class="btn btn-xs btn-ghost" onclick="openCopyStaffPopup(${s.id})"><i data-lucide="copy" style="width:11px;height:11px"></i> Copy</button>
         ${linkBtn}
-        <button class="btn btn-xs btn-danger" onclick="rmStaff(${s.id})"><i data-lucide="x" style="width:11px;height:11px"></i></button>
+        <button class="btn btn-xs btn-danger" onclick="rmStaff(${s.id},'${s.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"><i data-lucide="x" style="width:11px;height:11px"></i></button>
       </div>
     </div>`;
   }).join('\n');
@@ -3278,8 +3290,9 @@ function renderAll(){
     }
 
     let badgeList=[];
-    if(s.badge==='supervisor')badgeList.push(`<span class="staff-badge b-supervisor">SUP</span>`);
-    if(s.badge==='manager')badgeList.push(`<span class="staff-badge b-manager">MGR</span>`);
+    const roleBadge=normalizeRoleBadge(s.badge);
+    if(roleBadge==='supervisor')badgeList.push(`<span class="staff-badge b-supervisor">SUP</span>`);
+    if(roleBadge==='manager')badgeList.push(`<span class="staff-badge b-manager">MGR</span>`);
     if(s.priority>0)badgeList.push(`<span class="staff-badge b-priority">★ PRI</span>`);
     if(s.scheduleType==='fixed')badgeList.push(`<span class="staff-badge b-fixed">FIX</span>`);
     const linkCount=linkedRosterCount(s);
@@ -3297,7 +3310,7 @@ function renderAll(){
     const moreChip=hiddenBadges?`<span class="roster-id-more">+${hiddenBadges}</span>`:'';
     tbody+=`<div class="roster-id-card"><div class="roster-id-top">${nameHtml}${hoursChip}</div><div class="roster-id-rate" onclick="startEditRate(${s.id})">${payInfo}</div><div class="roster-id-badges">${visibleBadges}${moreChip}</div></div>`;
     tbody+='</div><div class="nm-acts">';
-    tbody+=`<button class="act" onclick="rmStaff(${s.id})"><i data-lucide="x"></i></button>`;
+    tbody+=`<button class="act" onclick="rmStaff(${s.id},'${s.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"><i data-lucide="x"></i></button>`;
     tbody+='</div></div></td>';
 
     // Get hybrid info for this staff once
@@ -4232,8 +4245,9 @@ function buildTableHTML(){
     h+=`<tr style="border-bottom:1px solid #f5f0fb">`;
     // Build badges
     let bgs=[];
-    if(s.badge==='supervisor')bgs.push(`<span style="background:#eaefff;color:#4a6cf7;font-size:9px;font-weight:600;border-radius:6px;padding:1px 6px;letter-spacing:.04em">SUP</span>`);
-    if(s.badge==='manager')bgs.push(`<span style="background:#f3e8ff;color:#8b3fc8;font-size:9px;font-weight:600;border-radius:6px;padding:1px 6px;letter-spacing:.04em">MGR</span>`);
+    const roleBadge=normalizeRoleBadge(s.badge);
+    if(roleBadge==='supervisor')bgs.push(`<span style="background:#eaefff;color:#4a6cf7;font-size:9px;font-weight:600;border-radius:6px;padding:1px 6px;letter-spacing:.04em">SUP</span>`);
+    if(roleBadge==='manager')bgs.push(`<span style="background:#f3e8ff;color:#8b3fc8;font-size:9px;font-weight:600;border-radius:6px;padding:1px 6px;letter-spacing:.04em">MGR</span>`);
     if(s.priority>0)bgs.push(`<span style="background:#fff8e1;color:#c8860a;font-size:9px;font-weight:600;border-radius:6px;padding:1px 6px;letter-spacing:.04em">★</span>`);
     if(s.scheduleType==='fixed')bgs.push(`<span style="background:#e8f5e9;color:#3d8f50;font-size:9px;font-weight:600;border-radius:6px;padding:1px 6px;letter-spacing:.04em">FIX</span>`);
     h+=`<td style="padding:8px 12px 6px;border-right:1px solid #f0eaf8">`;
@@ -5969,7 +5983,7 @@ document.addEventListener('contextmenu',function(e){
       {icon:'arrow-down',label:'Move down',action(){mvStaff(si,1)}},
       'sep',
       {icon:'eraser',label:'Clear all shifts',action(){s.shifts.forEach((_,i)=>{s.shifts[i]={start:'',end:'',type:''}});renderAll();toast(s.name+' cleared')}},
-      {icon:'trash-2',label:'Remove '+s.name,action(){rmStaff(sid)},danger:true},
+      {icon:'trash-2',label:'Remove '+s.name,action(){rmStaff(sid,s.name)},danger:true},
     ];
     showCtx(e.clientX,e.clientY,items);
   });
@@ -6033,7 +6047,8 @@ function openPaySettings(sid){
   h+='<input class="inp inp-sm" type="number" step="0.5" id="psCashRate" value="'+(s.cashRate||0)+'"></div>';
   h+='<div style="margin-bottom:10px">';
   h+='<label style="font-size:11px;font-weight:600;color:var(--s500);display:block;margin-bottom:4px">Role Badge</label>';
-  h+='<select class="inp inp-sm" id="psBadge"><option value=""'+((!s.badge)?' selected':'')+'>None</option><option value="supervisor"'+((s.badge==='supervisor')?' selected':'')+'>Supervisor</option><option value="manager"'+((s.badge==='manager')?' selected':'')+'>Manager</option></select></div>';
+  const currentBadge=normalizeRoleBadge(s.badge);
+  h+='<select class="inp inp-sm" id="psBadge"><option value=""'+((!currentBadge)?' selected':'')+'>None</option><option value="supervisor"'+((currentBadge==='supervisor')?' selected':'')+'>Supervisor</option><option value="manager"'+((currentBadge==='manager')?' selected':'')+'>Manager</option></select></div>';
   h+='<div style="margin-bottom:10px">';
   h+='<label style="font-size:11px;font-weight:600;color:var(--s500);display:block;margin-bottom:4px">Priority <span style="font-weight:400;color:var(--s400)">(higher = more hours in auto-gen)</span></label>';
   h+='<select class="inp inp-sm" id="psPriority"><option value="0"'+((s.priority||0)===0?' selected':'')+'>Normal</option><option value="1"'+((s.priority||0)===1?' selected':'')+'>High (★)</option><option value="2"'+((s.priority||0)===2?' selected':'')+'>Critical (★★)</option></select></div>';
@@ -6085,7 +6100,7 @@ function savePaySettings(sid){
   s.salary=parseFloat(el('psSalary').value)||0;
   s.maxHours=parseFloat(el('psMaxH').value)||0;
   s.cashRate=parseFloat(el('psCashRate').value)||0;
-  s.badge=el('psBadge')?el('psBadge').value:'';
+  s.badge=normalizeRoleBadge(el('psBadge')?el('psBadge').value:'');
   s.priority=parseInt(el('psPriority')?el('psPriority').value:0)||0;
   s.scheduleType=el('psSchedType')?el('psSchedType').value:'variable';
   s.fixedDaysOff=DS.map((_,i)=>{const cb=document.getElementById('psOff'+i);return cb&&cb.checked?i:null}).filter(x=>x!==null);
