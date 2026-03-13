@@ -662,6 +662,9 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
 .stores-bar-list button.store-chip:hover{background:var(--white);border-color:var(--purple-300)}
 .stores-bar-list .store-chip-count{font-size:12px;opacity:.85;margin-left:2px}
 .stores-bar-actions{display:flex;gap:6px;flex-shrink:0}
+@media(min-width:769px){
+  body.easy-mode .stores-bar-actions .add-store-btn{display:none!important}
+}
 .rtabs-wrap{display:flex;align-items:stretch;background:var(--white);border-radius:14px;border:1px solid var(--s100);margin-bottom:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.03)}
 .rtabs-scroll{display:flex;flex:1;overflow-x:auto;gap:0;scrollbar-width:none;padding:4px 4px 4px 4px}
 .rtabs-scroll::-webkit-scrollbar{display:none}
@@ -1039,7 +1042,7 @@ body.easy-mode.em-hide-tabs .rtabs-wrap{display:none!important}
     <div id="storesBarList" class="stores-bar-list"></div>
     <div class="stores-bar-actions">
       <button type="button" class="btn btn-xs btn-ghost" onclick="openShopListPopup()" title="Manage stores"><i data-lucide="settings"></i> Manage</button>
-      <button type="button" class="btn btn-xs btn-primary" onclick="openShopListPopup()" title="Add store"><i data-lucide="plus"></i> Add store</button>
+      <button type="button" class="btn btn-xs btn-primary add-store-btn" onclick="openShopListPopup()" title="Add store"><i data-lucide="plus"></i> Add store</button>
     </div>
   </div>
 </div>
@@ -6428,6 +6431,7 @@ window.openStaffRules=openStaffRules;
 
 function openShopListPopup(){
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const desktopEasyMode=!!easyMode&&window.matchMedia('(min-width:769px)').matches;
   let h='<div class="pop-box" onclick="event.stopPropagation()" style="width:340px">';
   h+='<div class="pop-title"><i data-lucide="building-2"></i> Manage Shop List</div>';
   h+='<div style="font-size:11px;color:var(--s400);margin-bottom:10px;text-align:center">Shops for payroll assignment (accountant splits)</div>';
@@ -6438,7 +6442,11 @@ function openShopListPopup(){
     h+='<div style="text-align:center;color:var(--s400);font-size:12px;padding:10px">No shops yet</div>';
   }
   h+='</div>';
-  h+='<div style="display:flex;gap:6px;margin-top:10px"><input class="inp inp-sm" id="newShopName" placeholder="Shop name" style="flex:1"><button class="btn btn-xs btn-primary" onclick="addShop()">+ Add</button></div>';
+  if(desktopEasyMode){
+    h+='<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--amber-50);border:1px solid var(--amber-100);font-size:11px;color:#92400e">Adding stores is disabled in Easy Mode on desktop.</div>';
+  }else{
+    h+='<div style="display:flex;gap:6px;margin-top:10px"><input class="inp inp-sm" id="newShopName" placeholder="Shop name" style="flex:1"><button class="btn btn-xs btn-primary" onclick="addShop()">+ Add</button></div>';
+  }
   h+='<button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="closePop();renderAll()">Done</button>';
   h+='</div>';
   el('popOver').innerHTML=h;el('popOver').classList.remove('hidden');lucide.createIcons();
@@ -6453,6 +6461,10 @@ function buildManageShopRow(sh,i,esc){
     '<button class="btn btn-xs" style="padding:2px 6px;font-size:9px;color:var(--pink-500);border:1px solid var(--pink-200)" onclick="shopList.splice('+i+',1);saveState();renderStaffTab();renderStoresBar();renderPay();openShopListPopup()">✕</button></div>';
 }
 function addShop(){
+  if(!!easyMode&&window.matchMedia('(min-width:769px)').matches){
+    toast('Adding stores is disabled in Easy Mode on desktop');
+    return;
+  }
   const name=el('newShopName').value.trim();
   if(!name)return;
   const id=name.toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,20)+'_'+Date.now().toString(36);
